@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "baseLocale": "en-US",
+  "locales": {
+    "en-US": { "file": "en-US.json" },
+    "en-CA": { "file": "en-US.json", "overrides": "en-CA.overrides.json" },
+    "fr-CA": { "file": "fr-CA.json" }
+  },
+  "excludedLocales": {
+    "es-US": "Deferred until native cheque terminology, amount-word, print-fit and support QA have product-specific demand evidence."
+  }
+}

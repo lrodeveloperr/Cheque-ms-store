@@ -1,6 +1,10 @@
 node_modules/
 coverage/
 output/
+windows-host/dist/
+windows-host/out/
+windows-host/resources/store-bridge/
+windows-host/resources/msix/
 tmp/
 *.tsbuildinfo
 *.wbc

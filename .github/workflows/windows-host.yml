@@ -1,0 +1,85 @@
+name: Windows host
+
+on:
+  push:
+    paths:
+      - "src/**"
+      - "windows-host/**"
+      - ".github/workflows/windows-host.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "windows-host/**"
+      - ".github/workflows/windows-host.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-and-package:
+    runs-on: windows-2025
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: windows-host
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.10.0"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Install pinned host toolchain
+        run: npm ci --no-audit --no-fund
+      - name: Typecheck, test and compile TypeScript
+        run: npm run verify
+      - name: Compile the packaged StoreContext bridge
+        run: npm run bridge:build
+      - name: Build unsigned x64 and ARM64 MSIX packages
+        run: npm run package:msix
+      - name: Inspect the actual MSIX manifests and bridge payloads
+        shell: pwsh
+        run: |
+          $makeAppx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter makeappx.exe |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+          if (-not $makeAppx) { throw 'MakeAppx.exe was not found.' }
+          $packages = Get-ChildItem -Path out\make\msix -Recurse -Filter *.msix
+          if ($packages.Count -ne 2) { throw "Expected two MSIX packages; found $($packages.Count)." }
+          foreach ($package in $packages) {
+            $unpacked = Join-Path $env:RUNNER_TEMP ("msix-" + [guid]::NewGuid().ToString())
+            & $makeAppx.FullName unpack /p $package.FullName /d $unpacked /o | Out-Host
+            if ($LASTEXITCODE -ne 0) { throw "Could not unpack $($package.FullName)." }
+            $manifest = Get-Content (Join-Path $unpacked 'AppxManifest.xml') -Raw
+            foreach ($language in @('en-US', 'en-CA', 'fr-CA')) {
+              if ($manifest -notmatch ('Resource Language="' + [regex]::Escape($language) + '"')) { throw "Missing $language in $($package.Name)." }
+            }
+            if ($manifest -notmatch 'Capability Name="runFullTrust"') { throw "runFullTrust is missing from $($package.Name)." }
+            if ($manifest -match 'internetClient') { throw "Unexpected internetClient capability in $($package.Name)." }
+            if ($manifest -match '\$\{') { throw "Unresolved manifest variable in $($package.Name)." }
+            $bridge = Get-ChildItem $unpacked -Recurse -Filter WorksBien.StoreBridge.exe | Select-Object -First 1
+            if (-not $bridge) { throw "Store bridge missing from $($package.Name)." }
+            $expectedArch = if ($package.FullName -match 'arm64') { 'arm64' } else { 'x64' }
+            if ($manifest -notmatch ('ProcessorArchitecture="' + $expectedArch + '"')) { throw "Wrong architecture in $($package.Name)." }
+          }
+      - name: Smoke-test the packaged x64 Electron host
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path out -Recurse -Filter CheckPrinterCheckWriter.exe |
+            Where-Object { $_.FullName -match 'win32-x64' } |
+            Select-Object -First 1
+          if (-not $exe) { throw 'Packaged x64 host executable was not found.' }
+          $process = Start-Process -FilePath $exe.FullName -PassThru
+          Start-Sleep -Seconds 3
+          if ($process.HasExited) { throw "Packaged host exited during startup with code $($process.ExitCode)." }
+          Stop-Process -Id $process.Id -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: worksbien-check-printer-msix
+          path: windows-host/out/make/**/*.msix
+          if-no-files-found: error
+          retention-days: 14

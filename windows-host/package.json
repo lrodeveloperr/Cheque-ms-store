@@ -1,0 +1,39 @@
+{
+  "name": "@worksbien/check-printer-windows-host",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Windows desktop host for the locked WorksBien Check Printer engine",
+  "author": "WorksBien Studios Inc.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "main": "dist/windows-host/src/application/main.js",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "config": {
+    "forge": "./packaging/forge.config.cjs"
+  },
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true});require('node:fs').rmSync('out',{recursive:true,force:true})\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test test/platform/*.test.ts test/product/*.test.ts test/application/*.test.ts",
+    "verify": "npm run typecheck && npm test && npm run build",
+    "bridge:build": "dotnet build -c Release src/product/store-bridge/WorksBien.StoreBridge.csproj",
+    "bridge:publish:x64": "dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o resources/store-bridge/x64 src/product/store-bridge/WorksBien.StoreBridge.csproj",
+    "bridge:publish:arm64": "dotnet publish -c Release -r win-arm64 --self-contained true -p:PublishSingleFile=true -o resources/store-bridge/arm64 src/product/store-bridge/WorksBien.StoreBridge.csproj",
+    "manifest:x64": "cross-env MSIX_ARCH=x64 node scripts/generate-msix-manifest.mjs",
+    "manifest:arm64": "cross-env MSIX_ARCH=arm64 node scripts/generate-msix-manifest.mjs",
+    "package:msix:x64": "npm run bridge:publish:x64 && npm run manifest:x64 && cross-env MSIX_ARCH=x64 electron-forge make --platform=win32 --arch=x64",
+    "package:msix:arm64": "npm run bridge:publish:arm64 && npm run manifest:arm64 && cross-env MSIX_ARCH=arm64 electron-forge make --platform=win32 --arch=arm64",
+    "package:msix": "npm run clean && npm run build && npm run package:msix:x64 && npm run package:msix:arm64"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "7.11.2",
+    "@electron-forge/maker-msix": "7.11.2",
+    "@types/node": "24.10.1",
+    "cross-env": "10.1.0",
+    "electron": "44.4.3",
+    "typescript": "5.9.3"
+  }
+}

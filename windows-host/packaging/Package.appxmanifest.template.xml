@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Identity placeholders must be replaced with exact Partner Center values. -->
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+         xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+         xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+         IgnorableNamespaces="uap rescap">
+  <Identity Name="${MS_STORE_IDENTITY_NAME}"
+            Publisher="${MS_STORE_PUBLISHER}"
+            Version="${PACKAGE_VERSION}"
+            ProcessorArchitecture="${TARGET_ARCH}" />
+  <Properties>
+    <DisplayName>Check Printer &amp; Check Writer</DisplayName>
+    <PublisherDisplayName>${MS_STORE_PUBLISHER_DISPLAY_NAME}</PublisherDisplayName>
+    <Description>Create, verify, save and print US and Canadian cheques locally.</Description>
+    <Logo>Assets\Square44x44Logo.png</Logo>
+  </Properties>
+  <Resources>
+    <Resource Language="en-US" />
+    <Resource Language="en-CA" />
+    <Resource Language="fr-CA" />
+  </Resources>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+  <Applications>
+    <Application Id="CheckPrinterCheckWriter" Executable="CheckPrinterCheckWriter.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements DisplayName="Check Printer &amp; Check Writer"
+                          Description="Create, verify, save and print US and Canadian cheques locally."
+                          BackgroundColor="#FFFFFF"
+                          Square44x44Logo="Assets\Square44x44Logo.png"
+                          Square150x150Logo="Assets\Square150x150Logo.png" />
+    </Application>
+  </Applications>
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>
