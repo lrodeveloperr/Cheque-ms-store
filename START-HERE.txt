@@ -1,0 +1,12 @@
+WORKSBIEN CHECK PRINTER - BACKEND TESTABLE VERSION
+
+Windows quick start:
+1. Install Node.js 24 or later.
+2. Double-click RUN-BACKEND-ACCEPTANCE.cmd.
+3. Open the output folder printed when the test finishes.
+4. Inspect 03-live-check.pdf and result.json.
+
+No physical printer is required. To test the Windows print path, open the PDF
+and print it through Microsoft Print to PDF at 100% / Actual size.
+
+For custom values and all three print outcomes, open TESTING.md.

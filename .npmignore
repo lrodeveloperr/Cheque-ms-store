@@ -1,0 +1,12 @@
+node_modules/
+coverage/
+output/
+tmp/
+*.tsbuildinfo
+**/*.wbc
+**/*.guard
+**/*.lock
+**/*.heartbeat
+**/*.numbers
+**/*.tmp
+**/*.pre-restore-*

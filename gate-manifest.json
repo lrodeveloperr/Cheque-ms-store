@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "candidate": "0.5.0-rc.1",
+  "generatedAt": "2026-09-19T00:00:00Z",
+  "status": "ENGINE_READY_FOR_EXTERNAL_VERIFICATION",
+  "requirements": [
+    {"id":"REQ-MNY-001","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"HIGH","normative":"docs/PRODUCT_CONTRACT.md","tests":["tests/money.test.ts","tests/stress.test.ts"],"dependencies":[]},
+    {"id":"REQ-MNY-002","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"HIGH","normative":"docs/PRODUCT_CONTRACT.md","tests":["tests/money.test.ts","tests/completeness.test.ts"],"dependencies":["REQ-MNY-001"]},
+    {"id":"REQ-CHK-001","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"HIGH","normative":"docs/PRODUCT_CONTRACT.md","tests":["tests/engine.test.ts","tests/persistence.test.ts"],"dependencies":[]},
+    {"id":"REQ-CHK-002","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"HIGH","normative":"docs/PRODUCT_CONTRACT.md","tests":["tests/engine.test.ts","tests/stress.test.ts"],"dependencies":["REQ-CHK-001"]},
+    {"id":"REQ-CHK-003","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"HIGH","normative":"docs/PRODUCT_CONTRACT.md","tests":["tests/engine.test.ts","tests/host-contract.test.ts"],"dependencies":["REQ-CHK-002"]},
+    {"id":"REQ-CHK-004","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"HIGH","normative":"docs/PRODUCT_CONTRACT.md","tests":["tests/engine.test.ts"],"dependencies":["REQ-CHK-002"]},
+    {"id":"REQ-TPL-001","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"MEDIUM","normative":"docs/PRODUCT_CONTRACT.md","tests":["tests/completeness.test.ts"],"dependencies":["REQ-CHK-001","REQ-CHK-004"]},
+    {"id":"REQ-PRN-001","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"HIGH","normative":"docs/NORTH_AMERICAN_CHEQUE_LAYOUT.md","tests":["tests/printing.test.ts","tests/pdf-renderer.test.ts"],"dependencies":["REQ-MNY-002"]},
+    {"id":"REQ-PRN-002","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"HIGH","normative":"docs/PRODUCT_CONTRACT.md","tests":["tests/printing.test.ts","harness/scenarios.ts"],"dependencies":["REQ-PRN-001"]},
+    {"id":"REQ-PRN-003","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"HIGH","normative":"docs/PRODUCT_CONTRACT.md","tests":["tests/engine.test.ts","tests/printing.test.ts"],"dependencies":["REQ-PRN-001"]},
+    {"id":"REQ-PRN-005","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"HIGH","normative":"docs/NORTH_AMERICAN_CHEQUE_LAYOUT.md","tests":["tests/printing.test.ts","tests/persistence.test.ts"],"dependencies":["REQ-PRN-001","REQ-PRN-002"]},
+    {"id":"REQ-PDF-001","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"HIGH","normative":"docs/NORTH_AMERICAN_CHEQUE_LAYOUT.md","tests":["tests/pdf-renderer.test.ts","tests/pdf-matrix.test.ts"],"dependencies":["REQ-PRN-001"]},
+    {"id":"REQ-PDF-002","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"HIGH","normative":"docs/RELEASE_GATE.md","tests":["tests/pdf-matrix.test.ts","scripts/verify-pdf-integrity.ts"],"dependencies":["REQ-PDF-001"]},
+    {"id":"REQ-PDF-003","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"HIGH","normative":"docs/RELEASE_GATE.md","tests":["scripts/verify-pdf-visuals.ts"],"dependencies":["REQ-PDF-001","REQ-PDF-002"]},
+    {"id":"REQ-AUD-001","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"HIGH","normative":"docs/PRODUCT_CONTRACT.md","tests":["tests/engine.test.ts"],"dependencies":[]},
+    {"id":"REQ-DAT-001","scope":"LAUNCH","status":"PASS","owner":"persistence","risk":"HIGH","normative":"docs/PRODUCT_CONTRACT.md","tests":["tests/persistence.test.ts"],"dependencies":[]},
+    {"id":"REQ-DAT-002","scope":"LAUNCH","status":"PASS","owner":"persistence","risk":"HIGH","normative":"docs/PRODUCT_CONTRACT.md","tests":["tests/persistence.test.ts"],"dependencies":["REQ-DAT-001"]},
+    {"id":"REQ-CSV-001","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"HIGH","normative":"docs/PRODUCT_CONTRACT.md","tests":["tests/csv.test.ts","tests/stress.test.ts"],"dependencies":[]},
+    {"id":"REQ-ENT-001","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"HIGH","normative":"docs/PRODUCT_CONTRACT.md","tests":["tests/engine.test.ts","tests/persistence.test.ts"],"dependencies":["REQ-CHK-002","REQ-DAT-002"]},
+    {"id":"REQ-REC-001","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"MEDIUM","normative":"docs/PRODUCT_CONTRACT.md","tests":["tests/engine.test.ts"],"dependencies":["REQ-MNY-001","REQ-CHK-002"]},
+    {"id":"REQ-REC-002","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"MEDIUM","normative":"docs/PRODUCT_CONTRACT.md","tests":["tests/register.test.ts","tests/completeness.test.ts","tests/engine.test.ts"],"dependencies":["REQ-REC-001","REQ-CSV-001"]},
+    {"id":"REQ-LOC-001","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"MEDIUM","normative":"docs/PRODUCT_CONTRACT.md","tests":["tests/localization.test.ts"],"dependencies":[]},
+    {"id":"REQ-FR-001","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"HIGH","normative":"docs/PRODUCT_CONTRACT.md","tests":["tests/money.test.ts","tests/completeness.test.ts"],"dependencies":["REQ-LOC-001","REQ-MNY-002"]},
+    {"id":"REQ-HST-001","scope":"LAUNCH","status":"PASS","owner":"engine","risk":"HIGH","normative":"docs/PRODUCT_CONTRACT.md","tests":["tests/host-contract.test.ts","tests/engine.test.ts","tests/completeness.test.ts","harness/scenarios.ts"],"dependencies":["REQ-CHK-002","REQ-PRN-003"]},
+    {"id":"REQ-PRN-004","scope":"DEFERRED","status":"NOT_RUN","owner":"windows-host","risk":"HIGH","normative":"docs/EXTERNAL_REVIEW_BRIEF.md","tests":["physical printer matrix"],"dependencies":["REQ-PRN-001","REQ-PRN-003"]},
+    {"id":"REQ-MIC-001","scope":"EXCLUDED","status":"N_A","owner":"product","risk":"CRITICAL","normative":"docs/DECISION_REGISTER.md","tests":["scope review"],"dependencies":[]},
+    {"id":"REQ-CLD-001","scope":"EXCLUDED","status":"N_A","owner":"product","risk":"HIGH","normative":"docs/DECISION_REGISTER.md","tests":["scope review"],"dependencies":[]}
+  ],
+  "substitutions": [
+    {"control":"30-minute parser fuzz","substitute":"100,000 deterministic generated CSV round trips plus hard byte/row/column bounds","objective":"parser termination, bounded resource use, quote/newline correctness","approval":"manifest-approved for this dependency-free bounded parser"},
+    {"control":"mutation score >=80%","substitute":"targeted negative probes for lifecycle, atomic rejection, audit/state binding, encryption, semantic restore, stale locks, path aliases, migrations, duplicate identifiers, entitlement rollback, calibration geometry, immutable plan identity, Unicode, and malformed CSV, plus >80% branch coverage and two independent read-only review rounds","objective":"prove tests fail on critical contract violations","approval":"PASS for domain modules and measurable US/Canadian PDF geometry; physical stock, MICR, printer registration, and financial-institution qualification remain PROVISIONAL"}
+  ]
+}
