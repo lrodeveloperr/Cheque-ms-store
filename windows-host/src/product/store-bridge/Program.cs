@@ -93,7 +93,7 @@ internal static partial class Program
                     "readiness" => await ReadinessAsync(
                         context,
                         configuredStoreId,
-                        configuredAppStoreId,
+                        configuredAppStoreId!,
                         configuredIdentityName,
                         configuredFamilyName,
                         configuredPublisher,
@@ -136,7 +136,16 @@ internal static partial class Program
             return Failure("PACKAGE_IDENTITY_MISSING", false, "PACKAGE_IDENTITY_MISMATCH");
         }
 
-        StoreProduct currentProduct = await context.GetStoreProductForCurrentAppAsync();
+        StoreProductResult currentProductResult = await context.GetStoreProductForCurrentAppAsync();
+        if (currentProductResult.ExtendedError is not null)
+        {
+            return MapException(currentProductResult.ExtendedError);
+        }
+        StoreProduct? currentProduct = currentProductResult.Product;
+        if (currentProduct is null)
+        {
+            return Failure("PACKAGE_IDENTITY_MISSING", false, "CURRENT_APP_PRODUCT_MISSING");
+        }
         if (!string.Equals(currentProduct.StoreId, configuredAppStoreId, StringComparison.OrdinalIgnoreCase))
         {
             return Failure("PACKAGE_IDENTITY_MISSING", false, "APP_STORE_ID_MISMATCH");
