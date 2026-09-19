@@ -61,6 +61,7 @@ jobs:
             if ($manifest -notmatch 'Capability Name="runFullTrust"') { throw "runFullTrust is missing from $($package.Name)." }
             if ($manifest -match 'internetClient') { throw "Unexpected internetClient capability in $($package.Name)." }
             if ($manifest -match '\$\{') { throw "Unresolved manifest variable in $($package.Name)." }
+            if ($manifest -notmatch 'Executable="app\\CheckPrinterCheckWriter\.exe"') { throw "Packaged executable path is wrong in $($package.Name)." }
             $bridge = Get-ChildItem $unpacked -Recurse -Filter WorksBien.StoreBridge.exe | Select-Object -First 1
             if (-not $bridge) { throw "Store bridge missing from $($package.Name)." }
             $expectedArch = if ($package.FullName -match 'arm64') { 'arm64' } else { 'x64' }

@@ -23,7 +23,7 @@
     <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
   </Dependencies>
   <Applications>
-    <Application Id="CheckPrinterCheckWriter" Executable="CheckPrinterCheckWriter.exe" EntryPoint="Windows.FullTrustApplication">
+    <Application Id="CheckPrinterCheckWriter" Executable="app\CheckPrinterCheckWriter.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements DisplayName="Check Printer &amp; Check Writer"
                           Description="Create, verify, save and print US and Canadian cheques locally."
                           BackgroundColor="#FFFFFF"
