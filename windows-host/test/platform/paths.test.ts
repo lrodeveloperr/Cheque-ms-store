@@ -4,10 +4,11 @@ import test from "node:test";
 import { createAppPaths, requireBackupPath, requirePdfPath } from "../../src/platform/paths.ts";
 
 test("derives deterministic private application paths", () => {
-  const paths = createAppPaths(resolve("C:/user-data"), resolve("C:/temp"));
+  const guardDirectory = resolve("test-guard");
+  const paths = createAppPaths(resolve("C:/user-data"), resolve("C:/temp"), guardDirectory);
   assert.match(paths.stateFile, /worksbien-check-printer\.wbc$/);
   assert.match(paths.secureSecretFile, /storage-key\.dpapi$/);
-  assert.match(paths.guardDirectory, /WorksBien-CheckPrinter-Guards$/);
+  assert.equal(paths.guardDirectory, guardDirectory);
   assert.equal(paths.guardDirectory.startsWith(paths.dataDirectory), false);
 });
 
