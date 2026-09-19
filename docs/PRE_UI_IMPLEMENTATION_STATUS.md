@@ -61,6 +61,22 @@ headless single-instance/composition smoke host.
 - Production dependency audit: zero known vulnerabilities (`npm audit --omit=dev`).
 - Policy pack: all 10 rendered pages visually inspected; no clipping, blank pages or broken tables.
 
+## Verified on Windows CI
+
+GitHub Actions run
+[`35472500932`](https://github.com/lrodeveloperr/Cheque-ms-store/actions/runs/35472500932)
+passed on Windows Server 2025 for commit `f745100d2acb6035daf1fe2508df62db8fe8e50e`:
+
+- Node 24 install, strict TypeScript checks and all 41 Windows-host tests;
+- .NET 8 compilation of the real `Windows.Services.Store` bridge with zero warnings;
+- self-contained x64 and ARM64 bridge publication;
+- unsigned x64 and ARM64 MSIX creation with the installed Windows SDK;
+- unpack-and-inspect checks for architecture, all three languages,
+  `runFullTrust`, absence of `internetClient`, resolved manifest values, packaged
+  executable path and native bridge payload;
+- packaged x64 Electron host smoke launch; and
+- upload of both MSIX artifacts.
+
 ## Remaining external and Windows release gates
 
 These are validation/deployment gates, not unfinished UI work:
@@ -69,15 +85,13 @@ These are validation/deployment gates, not unfinished UI work:
    publisher and application Store ID into the release environment.
 2. Create the non-expiring Lifetime add-on, set US/Canada market prices, and
    copy its Store ID into the bridge environment.
-3. Run the committed Windows CI workflow and retain the two inspected unsigned
-   MSIX artifacts.
-4. Associate a signed package flight with the Store product and test price,
+3. Associate a signed package flight with the Store product and test price,
    purchase, restore, refund/revocation and offline-grace behaviour with Store
    test accounts. `Windows.Services.Store` has no equivalent local simulator.
-5. On Windows, validate Microsoft Print to PDF and at least one real printer;
+4. On Windows, validate Microsoft Print to PDF and at least one real printer;
    when the driver does not declare Letter capability, confirm that the manual
    Letter acknowledgement gate appears.
-6. Before public submission, add final branded MSIX assets, obtain professional
+5. Before public submission, add final branded MSIX assets, obtain professional
    legal review, and publish the final privacy/terms URLs.
 
 ## Locked boundaries
