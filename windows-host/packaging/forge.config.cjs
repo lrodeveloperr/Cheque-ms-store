@@ -1,9 +1,26 @@
+const fs = require("node:fs");
 const path = require("node:path");
 const identityName = process.env.MS_STORE_IDENTITY_NAME || "WorksBienStudiosInc.CheckPrinter.DEVELOPMENT";
 const publisher = process.env.MS_STORE_PUBLISHER || "CN=WorksBien Development";
 const publisherDisplayName = process.env.MS_STORE_PUBLISHER_DISPLAY_NAME || "WorksBien Studios Inc. (Development)";
 const msixArch = process.env.MSIX_ARCH;
 const bridgeResource = msixArch ? `resources/store-bridge/${msixArch}` : undefined;
+
+function discoverWindowsKitVersion(arch) {
+  if (process.env.WINDOWS_KIT_VERSION) return process.env.WINDOWS_KIT_VERSION;
+  if (process.platform !== "win32" || !arch) return undefined;
+  const programFiles = process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)";
+  const kitBin = path.join(programFiles, "Windows Kits", "10", "bin");
+  if (!fs.existsSync(kitBin)) return undefined;
+  const candidates = fs.readdirSync(kitBin, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && /^\d+\.\d+\.\d+\.\d+$/.test(entry.name))
+    .map((entry) => entry.name)
+    .filter((version) => fs.existsSync(path.join(kitBin, version, arch, "makeappx.exe")))
+    .sort((left, right) => left.localeCompare(right, "en", { numeric: true }));
+  return candidates.at(-1);
+}
+
+const windowsKitVersion = discoverWindowsKitVersion(msixArch);
 
 if (process.env.MS_STORE_RELEASE === "1") {
   const missing = ["MS_STORE_IDENTITY_NAME", "MS_STORE_PUBLISHER", "MS_STORE_PUBLISHER_DISPLAY_NAME"].filter((name) => !process.env[name]);
@@ -36,6 +53,7 @@ module.exports = {
       sign: false,
       createPri: true,
       logLevel: "warn",
+      windowsKitVersion,
       appManifest: msixArch ? path.resolve(__dirname, `../resources/msix/${msixArch}/AppxManifest.xml`) : undefined,
       manifestVariables: {
         packageIdentity: identityName,
