@@ -57,6 +57,8 @@ function traceStartupSelfTest(phase: string, error?: unknown): void {
   catch { /* Diagnostics must never change application startup. */ }
 }
 
+traceStartupSelfTest("MODULE_LOADED");
+
 async function exitApplication(code: number): Promise<void> {
   if (shutdownStarted) return;
   traceStartupSelfTest(`EXIT_BEGIN_${code}`);
@@ -227,7 +229,6 @@ async function writeTextAtomically(destinationPath: string, contents: string): P
 
 async function createRuntime(): Promise<DesktopUiRuntime> {
   traceStartupSelfTest("RUNTIME_BEGIN");
-  const window = ownerWindow();
   const identity = partnerCenterIdentity();
   traceStartupSelfTest("STATE_OPEN_BEGIN");
   application = await openPreUiApplication({
@@ -243,7 +244,7 @@ async function createRuntime(): Promise<DesktopUiRuntime> {
     confirmUnknownLetter: { confirmUnverifiedLetterCapability: () => confirmUnknownLetter() },
     bridgeExecutablePath: join(process.resourcesPath, process.arch, "WorksBien.StoreBridge.exe"),
     partnerCenterIdentity: identity,
-    ownerHwnd: nativeWindowHandle(window),
+    ownerHwnd: startupSelfTestEnabled() ? 0 : nativeWindowHandle(ownerWindow()),
     packaged: app.isPackaged,
     storeAssociated: storeAssociated(identity),
   });
@@ -322,8 +323,10 @@ if (!app.requestSingleInstanceLock({ product: APP_TITLE })) {
   void app.whenReady().then(async () => {
     traceStartupSelfTest("APP_READY");
     app.setAppUserModelId(APP_USER_MODEL_ID);
-    mainWindow = createMainWindow(!startupSelfTestEnabled());
-    traceStartupSelfTest("WINDOW_CREATED");
+    if (!startupSelfTestEnabled()) {
+      mainWindow = createMainWindow();
+      traceStartupSelfTest("WINDOW_CREATED");
+    }
     const runtime = runtimeStartup.start(createRuntime);
     if (startupSelfTestEnabled()) {
       traceStartupSelfTest("UI_INITIALIZE_BEGIN");
