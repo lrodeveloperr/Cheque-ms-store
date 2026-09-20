@@ -23,6 +23,11 @@ export const PRODUCTION_PARTNER_CENTER_CONFIG = Object.freeze({
 
 export const STORE_PRODUCT = Object.freeze({
   storeTitle: "Check Printer & Check Writer",
+  localizedStoreTitles: Object.freeze({
+    "en-US": "Check Printer & Check Writer",
+    "en-CA": "Check Printer & Check Writer",
+    "fr-CA": "Impression et rédaction de chèques",
+  }),
   packageDisplayName: "Check Printer & Check Writer",
   publisherDisplayName: "WorksBien Studios Inc.",
   packageIdentityNamePlaceholder: "WorksBienStudios.CheckPrinterCheckWriter",

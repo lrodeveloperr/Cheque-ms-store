@@ -1,7 +1,8 @@
 # Microsoft Store packaging inputs
 
-Public product name: **Check Printer & Check Writer**. Package-safe executable
-stem: `CheckPrinterCheckWriter`.
+Public English product name: **Check Printer & Check Writer**. The Canadian
+French Store and in-app name is **Impression et rédaction de chèques**.
+Package-safe executable stem: `CheckPrinterCheckWriter`.
 
 The CI package is unsigned and uses a development identity by default. The
 canonical production values from Partner Center live in
@@ -26,7 +27,11 @@ desktop target and full-trust shape expected from the generated manifest. The
 Forge configuration generates the build manifest from the same values; compare
 the packaged manifest to this template during Partner Center release QA.
 
-The current package entry point is intentionally headless: it proves
-single-instance startup and composes the platform, persistence and product
-services without opening a window. The later UI phase will add the BrowserWindow
-and presentation layer while retaining this application composition boundary.
+The package contains a classic Electron/Win32 desktop executable with the
+`Windows.FullTrustApplication` entry point, so its manifest intentionally
+declares the restricted `runFullTrust` capability. The certification wording
+and the precise limits on this capability are maintained in
+`docs/MICROSOFT_STORE_CERTIFICATION_NOTES.md`.
+
+The package starts the Electron BrowserWindow only after composing the platform,
+persistence and product services and acquiring the single-instance lock.

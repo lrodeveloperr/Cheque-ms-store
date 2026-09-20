@@ -18,6 +18,11 @@ import {
 test("Store identity, add-on model and locked catalog targets are explicit", () => {
   assert.equal(STORE_PRODUCT.storeTitle, "Check Printer & Check Writer");
   assert.equal(STORE_PRODUCT.storeTitle.length, 28);
+  assert.deepEqual(STORE_PRODUCT.localizedStoreTitles, {
+    "en-US": "Check Printer & Check Writer",
+    "en-CA": "Check Printer & Check Writer",
+    "fr-CA": "Impression et rédaction de chèques",
+  });
   assert.equal(STORE_PRODUCT.publisherDisplayName, "WorksBien Studios Inc.");
   assert.equal(STORE_PRODUCT.lifetimeAddOn.inAppOfferToken, "lifetime_unlock");
   assert.equal(STORE_PRODUCT.lifetimeAddOn.productKind, "DURABLE");

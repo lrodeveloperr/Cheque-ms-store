@@ -3,7 +3,7 @@
 **Date d’entrée en vigueur :** 19 septembre 2026  
 **Fournisseur :** WorksBien Studios Inc.
 
-En installant ou en utilisant **Check Printer & Check Writer** (l’« Application »), l’utilisateur accepte les présentes conditions. S’il agit pour une entreprise, il confirme être autorisé à les accepter en son nom.
+En installant ou en utilisant **Impression et rédaction de chèques** (l’« Application »), l’utilisateur accepte les présentes conditions. S’il agit pour une entreprise, il confirme être autorisé à les accepter en son nom.
 
 ## 1. Objet et licence
 

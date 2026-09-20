@@ -1,5 +1,7 @@
 {
   "app.name": "Impression et rédaction de chèques",
+  "app.brandPrimary": "Impression de chèques",
+  "app.brandSecondary": "Rédaction de chèques",
   "app.publisher": "WorksBien Studios Inc.",
   "nav.home": "Accueil",
   "nav.cheques": "Chèques",

@@ -3,7 +3,7 @@
 **Date d’entrée en vigueur :** 19 septembre 2026  
 **Fournisseur :** WorksBien Studios Inc. (« WorksBien », « nous »)
 
-La présente politique s’applique à l’application Windows **Check Printer & Check Writer** (l’« Application »).
+La présente politique s’applique à l’application Windows **Impression et rédaction de chèques** (l’« Application »).
 
 ## En bref
 

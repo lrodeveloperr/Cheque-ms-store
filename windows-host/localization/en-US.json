@@ -1,5 +1,7 @@
 {
   "app.name": "Check Printer & Check Writer",
+  "app.brandPrimary": "Check Printer",
+  "app.brandSecondary": "Check Writer",
   "app.publisher": "WorksBien Studios Inc.",
   "nav.home": "Home",
   "nav.cheques": "Checks",
