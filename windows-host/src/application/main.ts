@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { appendFileSync, existsSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -29,6 +29,7 @@ const moduleDirectory = dirname(fileURLToPath(import.meta.url));
 let mainWindow: BrowserWindow | undefined;
 let application: PreUiApplication | undefined;
 const runtimeStartup = new RuntimeStartup<DesktopUiRuntime>((error) => {
+  traceStartupSelfTest("RUNTIME_FAILURE", error);
   console.error("Application runtime initialization failed.", error);
   if (!startupSelfTestEnabled() && app.isReady()) {
     dialog.showErrorBox(
@@ -45,12 +46,25 @@ function startupSelfTestEnabled(): boolean {
     || process.argv.includes("--worksbien-startup-self-test");
 }
 
+function traceStartupSelfTest(phase: string, error?: unknown): void {
+  if (!startupSelfTestEnabled()) return;
+  const path = process.env.WORKSBIEN_STARTUP_SELF_TEST_LOG;
+  if (!path) return;
+  const detail = error instanceof Error
+    ? ` ${error.name}: ${error.message}`
+    : error === undefined ? "" : ` ${String(error)}`;
+  try { appendFileSync(path, `${new Date().toISOString()} ${phase}${detail}\n`, "utf8"); }
+  catch { /* Diagnostics must never change application startup. */ }
+}
+
 async function exitApplication(code: number): Promise<void> {
   if (shutdownStarted) return;
+  traceStartupSelfTest(`EXIT_BEGIN_${code}`);
   shutdownStarted = true;
   const openedApplication = application;
   application = undefined;
   if (openedApplication) await openedApplication.close().catch(() => undefined);
+  traceStartupSelfTest(`EXIT_APPLICATION_CLOSED_${code}`);
   app.exit(code);
 }
 
@@ -212,8 +226,10 @@ async function writeTextAtomically(destinationPath: string, contents: string): P
 }
 
 async function createRuntime(): Promise<DesktopUiRuntime> {
+  traceStartupSelfTest("RUNTIME_BEGIN");
   const window = ownerWindow();
   const identity = partnerCenterIdentity();
+  traceStartupSelfTest("STATE_OPEN_BEGIN");
   application = await openPreUiApplication({
     userDataDirectory: app.getPath("userData"),
     temporaryDirectory: join(app.getPath("temp"), "worksbien-check-printer"),
@@ -231,7 +247,9 @@ async function createRuntime(): Promise<DesktopUiRuntime> {
     packaged: app.isPackaged,
     storeAssociated: storeAssociated(identity),
   });
+  traceStartupSelfTest("STATE_OPEN_COMPLETE");
   await application.initializeCommerce();
+  traceStartupSelfTest("COMMERCE_COMPLETE");
   const files = {
     createBackup: (intent: { destinationPath: string; recoveryPassphrase: string }) =>
       application!.createBackup(intent.destinationPath, intent.recoveryPassphrase),
@@ -241,7 +259,9 @@ async function createRuntime(): Promise<DesktopUiRuntime> {
   };
   const bridge = new PreUiApplicationBridge(application, files);
   const stateStore = new FileUiStateStore(join(app.getPath("userData"), "ui-session.json"));
-  return new DesktopUiRuntime(new UiWorkflowController(bridge, stateStore), filePicker());
+  const runtime = new DesktopUiRuntime(new UiWorkflowController(bridge, stateStore), filePicker());
+  traceStartupSelfTest("RUNTIME_COMPLETE");
+  return runtime;
 }
 
 function createMainWindow(loadUi = true): BrowserWindow {
@@ -300,11 +320,15 @@ if (!app.requestSingleInstanceLock({ product: APP_TITLE })) {
   ipcMain.handle("ui:action", async (_event, request: UiActionRequest) => (await runtimeStartup.require()).perform(request));
 
   void app.whenReady().then(async () => {
+    traceStartupSelfTest("APP_READY");
     app.setAppUserModelId(APP_USER_MODEL_ID);
     mainWindow = createMainWindow(!startupSelfTestEnabled());
+    traceStartupSelfTest("WINDOW_CREATED");
     const runtime = runtimeStartup.start(createRuntime);
     if (startupSelfTestEnabled()) {
+      traceStartupSelfTest("UI_INITIALIZE_BEGIN");
       await (await runtime).initialize();
+      traceStartupSelfTest("UI_INITIALIZE_COMPLETE");
       await exitApplication(0);
       return;
     }

@@ -75,13 +75,19 @@ jobs:
             Select-Object -First 1
           if (-not $exe) { throw 'Packaged x64 host executable was not found.' }
           $freshUserData = Join-Path $env:RUNNER_TEMP ("check-printer-first-launch-" + [guid]::NewGuid().ToString())
+          $startupLog = Join-Path $env:RUNNER_TEMP ("check-printer-startup-" + [guid]::NewGuid().ToString() + ".log")
           $env:WORKSBIEN_STARTUP_SELF_TEST = '1'
+          $env:WORKSBIEN_STARTUP_SELF_TEST_LOG = $startupLog
           $process = Start-Process -FilePath $exe.FullName -ArgumentList @("--user-data-dir=$freshUserData", "--worksbien-startup-self-test") -PassThru
           if (-not $process.WaitForExit(30000)) {
             Stop-Process -Id $process.Id -Force
+            if (Test-Path $startupLog) { Get-Content $startupLog | Out-Host }
             throw 'Packaged host did not complete first-launch UI initialization within 30 seconds.'
           }
-          if ($process.ExitCode -ne 0) { throw "Packaged host failed first-launch UI initialization with code $($process.ExitCode)." }
+          if ($process.ExitCode -ne 0) {
+            if (Test-Path $startupLog) { Get-Content $startupLog | Out-Host }
+            throw "Packaged host failed first-launch UI initialization with code $($process.ExitCode)."
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: worksbien-check-printer-msix
