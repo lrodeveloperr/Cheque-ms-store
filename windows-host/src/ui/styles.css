@@ -63,7 +63,7 @@ button:disabled { cursor: not-allowed; opacity: .58; }
 .sidebar-status span { margin-top: 5px; color: #91a4b6; font-size: .65rem; line-height: 1.4; }
 .sidebar-link { margin: 10px 0 0; padding: 0; color: #a9daf7; background: transparent; border: 0; font-size: .69rem; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
 
-.main-frame { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; min-width: 0; min-height: 0; background: var(--canvas); }
+.main-frame { display: grid; grid-template-rows: auto auto minmax(0, 1fr) max-content; min-width: 0; min-height: 0; background: var(--canvas); }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 76px; padding: 10px 28px; background: rgba(255,255,255,.96); border-bottom: 1px solid var(--line); }
 .topbar-heading { min-width: 0; }
 .eyebrow { display: block; overflow: hidden; color: var(--muted); font-size: .65rem; font-weight: 650; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
@@ -129,7 +129,10 @@ kbd { padding: 2px 5px; color: #647186; background: #f5f7f9; border: 1px solid #
 .state-surface p { max-width: 420px; margin: 8px 0 0; color: var(--muted); font-size: .74rem; line-height: 1.5; }
 .state-actions { display: flex; justify-content: center; gap: 9px; margin-top: 20px; }
 
-.statusbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 31px; padding: 0 28px; color: #788699; background: #fff; border-top: 1px solid var(--line); font-size: .6rem; }
+.statusbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 31px; padding: 0 28px; overflow: hidden; color: #788699; background: #fff; border-top: 1px solid var(--line); font-size: .6rem; }
+.statusbar > span { min-width: 0; white-space: nowrap; }
+.statusbar > span:first-child { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; }
+.statusbar > span:last-child { flex: 0 0 auto; }
 .local-dot { display: inline-block; width: 7px; height: 7px; margin-right: 6px; background: var(--success); border-radius: 50%; }
 .busy-layer { position: fixed; z-index: 80; inset: 0; display: grid; place-items: center; align-content: center; gap: 11px; color: #fff; background: rgba(10,22,34,.72); font-size: .78rem; font-weight: 650; }
 .spinner { width: 32px; height: 32px; border: 4px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }
@@ -370,7 +373,8 @@ html.text-scale-200 .activity-copy strong,
 html.text-scale-200 .activity-copy span { overflow: visible; white-space: normal; text-overflow: clip; }
 html.text-scale-200 .setup-list li { grid-template-columns: auto minmax(0, 1fr); }
 html.text-scale-200 .setup-badge { grid-column: 2; justify-self: start; }
-html.text-scale-200 .statusbar { min-height: auto; flex-wrap: wrap; padding-block: 6px; }
+html.text-scale-200 .statusbar { min-height: auto; flex-wrap: wrap; padding-block: 6px; overflow: visible; }
+html.text-scale-200 .statusbar > span:first-child { overflow: visible; white-space: normal; text-overflow: clip; }
 
 html.reduced-motion *,
 html.reduced-motion *::before,
