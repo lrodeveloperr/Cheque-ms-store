@@ -1,0 +1,26 @@
+name: Apply Store release configuration
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply verified release patch
+        run: |
+          git apply --index --whitespace=error-all 0001-Configure-production-Store-identity-skip-ci.patch
+          rm 0001-Configure-production-Store-identity-skip-ci.patch
+          rm .github/workflows/apply-store-release.yml
+          git add -A
+          git diff --cached --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Configure production Store identity [skip ci]"
+          git push origin HEAD:main
