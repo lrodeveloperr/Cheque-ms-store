@@ -30,11 +30,19 @@ let mainWindow: BrowserWindow | undefined;
 let application: PreUiApplication | undefined;
 const runtimeStartup = new RuntimeStartup<DesktopUiRuntime>((error) => {
   console.error("Application runtime initialization failed.", error);
+  if (!startupSelfTestEnabled() && app.isReady()) {
+    dialog.showErrorBox(
+      APP_TITLE,
+      "The app could not initialize its protected local data. No cheque data was changed.",
+    );
+  }
+  void exitApplication(1);
 });
 let shutdownStarted = false;
 
 function startupSelfTestEnabled(): boolean {
-  return process.env.WORKSBIEN_STARTUP_SELF_TEST === "1";
+  return process.env.WORKSBIEN_STARTUP_SELF_TEST === "1"
+    || process.argv.includes("--worksbien-startup-self-test");
 }
 
 async function exitApplication(code: number): Promise<void> {
@@ -217,7 +225,7 @@ async function createRuntime(): Promise<DesktopUiRuntime> {
         confirmPhysicalOutcome(job.plan.locale),
     },
     confirmUnknownLetter: { confirmUnverifiedLetterCapability: () => confirmUnknownLetter() },
-    bridgeExecutablePath: join(process.resourcesPath, "store-bridge", process.arch, "WorksBien.StoreBridge.exe"),
+    bridgeExecutablePath: join(process.resourcesPath, process.arch, "WorksBien.StoreBridge.exe"),
     partnerCenterIdentity: identity,
     ownerHwnd: nativeWindowHandle(window),
     packaged: app.isPackaged,

@@ -79,10 +79,19 @@ export interface ElectronBrowserWindowConstructor {
 export class ElectronNativePrintTransport implements NativePrintTransport {
   readonly #BrowserWindow: ElectronBrowserWindowConstructor;
   readonly #temporaryDirectory: string;
+  readonly #printerDiscoveryTimeoutMs: number;
 
-  constructor(BrowserWindow: ElectronBrowserWindowConstructor, temporaryDirectory: string) {
+  constructor(
+    BrowserWindow: ElectronBrowserWindowConstructor,
+    temporaryDirectory: string,
+    options: { printerDiscoveryTimeoutMs?: number } = {},
+  ) {
     this.#BrowserWindow = BrowserWindow;
     this.#temporaryDirectory = temporaryDirectory;
+    this.#printerDiscoveryTimeoutMs = options.printerDiscoveryTimeoutMs ?? 5_000;
+    if (!Number.isSafeInteger(this.#printerDiscoveryTimeoutMs) || this.#printerDiscoveryTimeoutMs < 1) {
+      throw new Error("Printer discovery timeout must be a positive integer.");
+    }
   }
 
   #window(): ElectronBrowserWindowLike {
@@ -96,8 +105,21 @@ export class ElectronNativePrintTransport implements NativePrintTransport {
 
   async listPrinters(): Promise<readonly NativePrinterInfo[]> {
     const window = this.#window();
-    try { return await window.webContents.getPrintersAsync(); }
-    finally { window.destroy(); }
+    let timer: NodeJS.Timeout | undefined;
+    try {
+      return await Promise.race([
+        window.webContents.getPrintersAsync(),
+        new Promise<never>((_resolve, reject) => {
+          timer = setTimeout(
+            () => reject(new Error("Windows printer discovery timed out.")),
+            this.#printerDiscoveryTimeoutMs,
+          );
+        }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+      window.destroy();
+    }
   }
 
   async submitPdf(pdfBytes: Uint8Array, settings: NativePrintSettings): Promise<PrintSubmission> {

@@ -47,3 +47,24 @@ test("Electron callback failure is treated as delivery-unknown", async () => {
     kind: "REJECTED", reason: "Print job failed", cancelledBeforeSubmit: false
   });
 });
+
+test("Electron printer discovery is bounded and destroys its hidden window", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "worksbien-print-"));
+  let destroyed = false;
+  class HangingWindow {
+    webContents = {
+      getPrintersAsync: () => new Promise<never>(() => undefined),
+      print: () => undefined,
+    };
+    async loadFile() {}
+    destroy() { destroyed = true; }
+  }
+  const transport = new ElectronNativePrintTransport(
+    HangingWindow as unknown as ElectronBrowserWindowConstructor,
+    directory,
+    { printerDiscoveryTimeoutMs: 10 },
+  );
+
+  await assert.rejects(transport.listPrinters(), /printer discovery timed out/i);
+  assert.equal(destroyed, true);
+});

@@ -62,10 +62,10 @@ jobs:
             if ($manifest -match 'internetClient') { throw "Unexpected internetClient capability in $($package.Name)." }
             if ($manifest -match '\$\{') { throw "Unresolved manifest variable in $($package.Name)." }
             if ($manifest -notmatch 'Executable="app\\CheckPrinterCheckWriter\.exe"') { throw "Packaged executable path is wrong in $($package.Name)." }
-            $bridge = Get-ChildItem $unpacked -Recurse -Filter WorksBien.StoreBridge.exe | Select-Object -First 1
-            if (-not $bridge) { throw "Store bridge missing from $($package.Name)." }
             $expectedArch = if ($package.FullName -match 'arm64') { 'arm64' } else { 'x64' }
             if ($manifest -notmatch ('ProcessorArchitecture="' + $expectedArch + '"')) { throw "Wrong architecture in $($package.Name)." }
+            $bridgePath = Join-Path $unpacked "app\resources\$expectedArch\WorksBien.StoreBridge.exe"
+            if (-not (Test-Path $bridgePath)) { throw "Store bridge is missing from its runtime path in $($package.Name)." }
           }
       - name: First-launch and initialize the packaged x64 Electron host
         shell: pwsh
@@ -76,7 +76,7 @@ jobs:
           if (-not $exe) { throw 'Packaged x64 host executable was not found.' }
           $freshUserData = Join-Path $env:RUNNER_TEMP ("check-printer-first-launch-" + [guid]::NewGuid().ToString())
           $env:WORKSBIEN_STARTUP_SELF_TEST = '1'
-          $process = Start-Process -FilePath $exe.FullName -ArgumentList "--user-data-dir=$freshUserData" -PassThru
+          $process = Start-Process -FilePath $exe.FullName -ArgumentList @("--user-data-dir=$freshUserData", "--worksbien-startup-self-test") -PassThru
           if (-not $process.WaitForExit(30000)) {
             Stop-Process -Id $process.Id -Force
             throw 'Packaged host did not complete first-launch UI initialization within 30 seconds.'
