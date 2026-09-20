@@ -39,28 +39,33 @@ jobs:
         run: npm run verify
       - name: Compile the packaged StoreContext bridge
         run: npm run bridge:build
-      - name: First-launch the compiled Electron host
+      - name: Build unsigned x64 MSIX package
+        run: npm run clean && npm run build && npm run package:msix:x64
+      - name: First-launch and initialize the packaged x64 Electron host
         shell: pwsh
         run: |
-          $electron = Resolve-Path node_modules\electron\dist\electron.exe
-          $freshUserData = Join-Path $env:RUNNER_TEMP ("check-printer-compiled-first-launch-" + [guid]::NewGuid().ToString())
-          $startupLog = Join-Path $env:RUNNER_TEMP ("check-printer-compiled-startup-" + [guid]::NewGuid().ToString() + ".log")
+          $exe = Get-ChildItem -Path out -Recurse -Filter CheckPrinterCheckWriter.exe |
+            Where-Object { $_.FullName -match 'win32-x64' } |
+            Select-Object -First 1
+          if (-not $exe) { throw 'Packaged x64 host executable was not found.' }
+          $freshUserData = Join-Path $env:RUNNER_TEMP ("check-printer-first-launch-" + [guid]::NewGuid().ToString())
+          $startupLog = Join-Path $env:RUNNER_TEMP ("check-printer-startup-" + [guid]::NewGuid().ToString() + ".log")
           $stdoutLog = "$startupLog.stdout"
           $stderrLog = "$startupLog.stderr"
           $env:WORKSBIEN_STARTUP_SELF_TEST = '1'
           $env:WORKSBIEN_STARTUP_SELF_TEST_LOG = $startupLog
-          $process = Start-Process -FilePath $electron -WorkingDirectory (Get-Location) -ArgumentList @('.', "--user-data-dir=$freshUserData", '--worksbien-startup-self-test', '--disable-gpu', '--enable-logging=stderr') -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog -PassThru
+          $process = Start-Process -FilePath $exe.FullName -ArgumentList @("--user-data-dir=$freshUserData", "--worksbien-startup-self-test", "--disable-gpu", "--enable-logging=stderr") -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog -PassThru
           if (-not $process.WaitForExit(30000)) {
             Stop-Process -Id $process.Id -Force
             foreach ($log in @($startupLog, $stdoutLog, $stderrLog)) { if (Test-Path $log) { Get-Content $log | Out-Host } }
-            throw 'Compiled host did not complete first-launch initialization within 30 seconds.'
+            throw 'Packaged host did not complete first-launch UI initialization within 30 seconds.'
           }
           if ($process.ExitCode -ne 0) {
             foreach ($log in @($startupLog, $stdoutLog, $stderrLog)) { if (Test-Path $log) { Get-Content $log | Out-Host } }
-            throw "Compiled host failed first-launch initialization with code $($process.ExitCode)."
+            throw "Packaged host failed first-launch UI initialization with code $($process.ExitCode)."
           }
-      - name: Build unsigned x64 and ARM64 MSIX packages
-        run: npm run package:msix
+      - name: Build unsigned ARM64 MSIX package
+        run: npm run package:msix:arm64
       - name: Inspect the actual MSIX manifests and bridge payloads
         shell: pwsh
         run: |
@@ -86,29 +91,6 @@ jobs:
             if ($manifest -notmatch ('ProcessorArchitecture="' + $expectedArch + '"')) { throw "Wrong architecture in $($package.Name)." }
             $bridgePath = Join-Path $unpacked "app\resources\$expectedArch\WorksBien.StoreBridge.exe"
             if (-not (Test-Path $bridgePath)) { throw "Store bridge is missing from its runtime path in $($package.Name)." }
-          }
-      - name: First-launch and initialize the packaged x64 Electron host
-        shell: pwsh
-        run: |
-          $exe = Get-ChildItem -Path out -Recurse -Filter CheckPrinterCheckWriter.exe |
-            Where-Object { $_.FullName -match 'win32-x64' } |
-            Select-Object -First 1
-          if (-not $exe) { throw 'Packaged x64 host executable was not found.' }
-          $freshUserData = Join-Path $env:RUNNER_TEMP ("check-printer-first-launch-" + [guid]::NewGuid().ToString())
-          $startupLog = Join-Path $env:RUNNER_TEMP ("check-printer-startup-" + [guid]::NewGuid().ToString() + ".log")
-          $stdoutLog = "$startupLog.stdout"
-          $stderrLog = "$startupLog.stderr"
-          $env:WORKSBIEN_STARTUP_SELF_TEST = '1'
-          $env:WORKSBIEN_STARTUP_SELF_TEST_LOG = $startupLog
-          $process = Start-Process -FilePath $exe.FullName -ArgumentList @("--user-data-dir=$freshUserData", "--worksbien-startup-self-test", "--disable-gpu", "--enable-logging=stderr") -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog -PassThru
-          if (-not $process.WaitForExit(30000)) {
-            Stop-Process -Id $process.Id -Force
-            foreach ($log in @($startupLog, $stdoutLog, $stderrLog)) { if (Test-Path $log) { Get-Content $log | Out-Host } }
-            throw 'Packaged host did not complete first-launch UI initialization within 30 seconds.'
-          }
-          if ($process.ExitCode -ne 0) {
-            foreach ($log in @($startupLog, $stdoutLog, $stderrLog)) { if (Test-Path $log) { Get-Content $log | Out-Host } }
-            throw "Packaged host failed first-launch UI initialization with code $($process.ExitCode)."
           }
       - uses: actions/upload-artifact@v4
         with:
