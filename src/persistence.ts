@@ -328,7 +328,16 @@ export class EncryptedStateStore {
   async #atomicWrite(path: string, contents: string): Promise<void> {
     await mkdir(dirname(path), { recursive: true }); const temporary = `${path}.tmp`; const handle = await open(temporary, "w", 0o600);
     try { await handle.writeFile(contents, "utf8"); await handle.sync(); } finally { await handle.close(); }
-    await rename(temporary, path); const directory = await open(dirname(path), "r"); try { await directory.sync(); } finally { await directory.close(); }
+    await rename(temporary, path); const directory = await open(dirname(path), "r");
+    try {
+      try { await directory.sync(); }
+      catch (error) {
+        // Windows flushes the file above but does not permit fsync on a
+        // directory handle. Preserve the directory durability barrier on
+        // platforms that support it and reject every other sync failure.
+        if (process.platform !== "win32" || (error as NodeJS.ErrnoException).code !== "EPERM") throw error;
+      }
+    } finally { await directory.close(); }
   }
 
   async #readGuard(path: string, secret: string): Promise<GuardRead> {
