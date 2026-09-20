@@ -1,0 +1,504 @@
+From 460d54f4306d917b9e9461a7859025b37b641430 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Sat, 19 Sep 2026 23:04:01 -0400
+Subject: [PATCH] Configure production Store identity [skip ci]
+
+---
+ .github/workflows/windows-host.yml            | 15 +++-
+ docs/PRE_UI_IMPLEMENTATION_STATUS.md          | 12 +--
+ docs/PRE_UI_PRODUCT_COMMERCE_LOCALIZATION.md  | 15 ++--
+ docs/UI_IMPLEMENTATION.md                     | 12 ++-
+ windows-host/packaging/STORE-PACKAGING.md     | 13 +++-
+ windows-host/packaging/forge.config.cjs       | 23 ++++--
+ .../scripts/generate-msix-manifest.mjs        | 21 ++++--
+ windows-host/src/application/main.ts          | 20 ++---
+ .../product/partner-center.production.json    |  8 ++
+ windows-host/src/product/product-identity.ts  | 75 ++++++++++++++++---
+ .../test/product/product-contract.test.ts     | 53 ++++++++++++-
+ windows-host/tsconfig.json                    |  1 +
+ 12 files changed, 209 insertions(+), 59 deletions(-)
+ create mode 100644 windows-host/src/product/partner-center.production.json
+
+diff --git a/.github/workflows/windows-host.yml b/.github/workflows/windows-host.yml
+index e5281eb..739eadd 100644
+--- a/.github/workflows/windows-host.yml
++++ b/.github/workflows/windows-host.yml
+@@ -12,6 +12,12 @@ on:
+       - "windows-host/**"
+       - ".github/workflows/windows-host.yml"
+   workflow_dispatch:
++    inputs:
++      store_release:
++        description: Build with the production Partner Center identity
++        required: true
++        type: boolean
++        default: false
+ 
+ permissions:
+   contents: read
+@@ -25,6 +31,7 @@ jobs:
+         working-directory: windows-host
+     env:
+       CSC_IDENTITY_AUTO_DISCOVERY: "false"
++      MS_STORE_RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.store_release && '1' || '0' }}
+     steps:
+       - uses: actions/checkout@v4
+       - uses: actions/setup-node@v4
+@@ -90,6 +97,12 @@ jobs:
+             if ($manifest -notmatch 'Capability Name="runFullTrust"') { throw "runFullTrust is missing from $($package.Name)." }
+             if ($manifest -match 'internetClient') { throw "Unexpected internetClient capability in $($package.Name)." }
+             if ($manifest -match '\$\{') { throw "Unresolved manifest variable in $($package.Name)." }
++            if ($env:MS_STORE_RELEASE -eq '1') {
++              if ($manifest -match 'DEVELOPMENT|WorksBien Development') { throw "Development identity found in Store release $($package.Name)." }
++              if ($manifest -notmatch 'Name="WorksBienStudiosInc\.CheckPrinterCheckWriter"') { throw "Production identity name is missing from $($package.Name)." }
++              if ($manifest -notmatch 'Publisher="CN=91C84CDB-D12C-4F89-8F2C-8EF1A15DF7F3"') { throw "Production publisher is missing from $($package.Name)." }
++              if ($manifest -notmatch '<PublisherDisplayName>WorksBien Studios Inc\.</PublisherDisplayName>') { throw "Production publisher display name is missing from $($package.Name)." }
++            }
+             if ($manifest -notmatch 'Executable="app\\CheckPrinterCheckWriter\.exe"') { throw "Packaged executable path is wrong in $($package.Name)." }
+             $expectedArch = if ($package.FullName -match 'arm64') { 'arm64' } else { 'x64' }
+             if ($manifest -notmatch ('ProcessorArchitecture="' + $expectedArch + '"')) { throw "Wrong architecture in $($package.Name)." }
+@@ -98,7 +111,7 @@ jobs:
+           }
+       - uses: actions/upload-artifact@v4
+         with:
+-          name: worksbien-check-printer-msix
++          name: ${{ env.MS_STORE_RELEASE == '1' && 'worksbien-check-printer-store-release-msix' || 'worksbien-check-printer-msix' }}
+           path: windows-host/out/make/**/*.msix
+           if-no-files-found: error
+           retention-days: 14
+diff --git a/docs/PRE_UI_IMPLEMENTATION_STATUS.md b/docs/PRE_UI_IMPLEMENTATION_STATUS.md
+index bb3d7b8..828ba07 100644
+--- a/docs/PRE_UI_IMPLEMENTATION_STATUS.md
++++ b/docs/PRE_UI_IMPLEMENTATION_STATUS.md
+@@ -81,18 +81,14 @@ passed on Windows Server 2025 for commit `f745100d2acb6035daf1fe2508df62db8fe8e5
+ 
+ These are validation/deployment gates, not unfinished UI work:
+ 
+-1. Reserve/confirm the product in Partner Center and copy its exact identity,
+-   publisher and application Store ID into the release environment.
+-2. Create the non-expiring Lifetime add-on, set US/Canada market prices, and
+-   copy its Store ID into the bridge environment.
+-3. Associate a signed package flight with the Store product and test price,
++1. Associate a signed package flight with the Store product and test price,
+    purchase, restore, refund/revocation and offline-grace behaviour with Store
+    test accounts. `Windows.Services.Store` has no equivalent local simulator.
+-4. On Windows, validate Microsoft Print to PDF and at least one real printer;
++2. On Windows, validate Microsoft Print to PDF and at least one real printer;
+    when the driver does not declare Letter capability, confirm that the manual
+    Letter acknowledgement gate appears.
+-5. Before public submission, add final branded MSIX assets, obtain professional
+-   legal review, and publish the final privacy/terms URLs.
++3. Before public submission, obtain professional legal review and publish the
++   final privacy/terms URLs. Final branded MSIX assets are already included.
+ 
+ ## Locked boundaries
+ 
+diff --git a/docs/PRE_UI_PRODUCT_COMMERCE_LOCALIZATION.md b/docs/PRE_UI_PRODUCT_COMMERCE_LOCALIZATION.md
+index 2c86169..1b4944c 100644
+--- a/docs/PRE_UI_PRODUCT_COMMERCE_LOCALIZATION.md
++++ b/docs/PRE_UI_PRODUCT_COMMERCE_LOCALIZATION.md
+@@ -39,14 +39,13 @@ Microsoft documents non-expiring Durable add-ons, `StoreContext`, add-on license
+ 
+ ## External actions that code cannot complete
+ 
+-1. Reserve **Check Printer & Check Writer** in Partner Center.
+-2. Copy the authoritative package identity name, family name, publisher subject and app Store ID into release configuration.
+-3. Create add-on product ID `lifetime_unlock` as **Durable / never expires**.
+-4. Copy its generated 12-character Store ID into the signed release configuration and the bridge environment.
+-5. Configure the US catalog target at USD 19.99 and Canada at CAD 25.99; review the Store-generated prices elsewhere.
+-6. Publish an unavailable/private package flight, install it from Store, and run purchase, cancel, offline, account-switch, reinstall and restore tests. `Windows.Services.Store` has no local simulator for this path.
+-7. Host the final privacy-policy URLs and enter them in Partner Center for every declared localization.
+-8. Complete age rating, purchase-range disclosure and reviewer instructions in Partner Center.
++1. Publish an unavailable/private package flight, install it from Store, and run purchase, cancel, offline, account-switch, reinstall and restore tests. `Windows.Services.Store` has no local simulator for this path.
++2. Host the final privacy-policy URLs and enter them in Partner Center for every declared localization.
++3. Complete age rating, purchase-range disclosure and reviewer instructions in Partner Center.
++
++The product reservation, production package identity, non-expiring Durable
++`lifetime_unlock` add-on, generated Store IDs and US/Canada catalog targets are
++complete and encoded in the release configuration.
+ 
+ ## Verification commands
+ 
+diff --git a/docs/UI_IMPLEMENTATION.md b/docs/UI_IMPLEMENTATION.md
+index e262924..d9f499c 100644
+--- a/docs/UI_IMPLEMENTATION.md
++++ b/docs/UI_IMPLEMENTATION.md
+@@ -20,10 +20,18 @@ The customer-facing Windows interface uses the **Operations Desk** direction. It
+ 
+ The renderer runs with context isolation, sandboxing and a narrow preload bridge. The main process owns encrypted persistence, Store commerce, native file dialogs, exact-PDF saving, native printing, print-outcome confirmation, backup and restore. UI code cannot access Node.js or the filesystem directly.
+ 
++## Store release configuration
++
++- The final Microsoft Store package identity, publisher, app Store ID, package
++  family name and Lifetime Unlock Store ID are configured from the authoritative
++  Partner Center product.
++- Store-installed packages use the embedded production identity; development
++  builds remain Store-unassociated.
++- The release workflow verifies both x64 and ARM64 manifests against the
++  production identity before uploading artifacts.
++
+ ## Deliberately deferred to Store submission
+ 
+-- Final Microsoft Store package identity values.
+-- Final Partner Center add-on identifier for Lifetime Unlock.
+ - Store-generated localized price strings and license verification against the production listing.
+ 
+ These are Partner Center inputs, not unfinished UI or cheque-engine work.
+diff --git a/windows-host/packaging/STORE-PACKAGING.md b/windows-host/packaging/STORE-PACKAGING.md
+index 35077cc..62fd5de 100644
+--- a/windows-host/packaging/STORE-PACKAGING.md
++++ b/windows-host/packaging/STORE-PACKAGING.md
+@@ -3,9 +3,12 @@
+ Public product name: **Check Printer & Check Writer**. Package-safe executable
+ stem: `CheckPrinterCheckWriter`.
+ 
+-The CI package is unsigned and uses a development identity by default. For a
+-Store-bound package, set `MS_STORE_RELEASE=1` and provide the exact values from
+-the Microsoft Partner Center product identity page:
++The CI package is unsigned and uses a development identity by default. The
++canonical production values from Partner Center live in
++`src/product/partner-center.production.json`; they are public product metadata,
++not signing secrets. For a Store-bound package, set `MS_STORE_RELEASE=1`.
++Environment overrides are accepted only when they exactly match the canonical
++configuration:
+ 
+ - `MS_STORE_IDENTITY_NAME`
+ - `MS_STORE_PUBLISHER`
+@@ -14,7 +17,9 @@ the Microsoft Partner Center product identity page:
+ Run `npm run package:msix` on Windows 10/11 with the Windows SDK. Electron
+ Forge's MSIX maker produces native `.msix` packages for x64 and ARM64. The
+ build fails rather than silently creating a Store-release package with a
+-placeholder identity.
++placeholder or mismatched identity. At runtime, a Windows Store-installed
++package uses the same embedded configuration for app and Lifetime add-on
++licence checks; unpackaged development builds remain Store-unassociated.
+ 
+ `Package.appxmanifest.template.xml` records the exact identity, language,
+ desktop target and full-trust shape expected from the generated manifest. The
+diff --git a/windows-host/packaging/forge.config.cjs b/windows-host/packaging/forge.config.cjs
+index b7b5495..620d742 100644
+--- a/windows-host/packaging/forge.config.cjs
++++ b/windows-host/packaging/forge.config.cjs
+@@ -1,8 +1,18 @@
+ const fs = require("node:fs");
+ const path = require("node:path");
+-const identityName = process.env.MS_STORE_IDENTITY_NAME || "WorksBienStudiosInc.CheckPrinter.DEVELOPMENT";
+-const publisher = process.env.MS_STORE_PUBLISHER || "CN=WorksBien Development";
+-const publisherDisplayName = process.env.MS_STORE_PUBLISHER_DISPLAY_NAME || "WorksBien Studios Inc. (Development)";
++const release = process.env.MS_STORE_RELEASE === "1";
++const productionConfig = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../src/product/partner-center.production.json"), "utf8"));
++function releaseValue(environmentName, configName) {
++  const configured = String(productionConfig[configName] || "");
++  const override = process.env[environmentName];
++  if (release && override && override !== configured) {
++    throw new Error(`${environmentName} does not match the canonical Partner Center configuration.`);
++  }
++  return release ? configured : override;
++}
++const identityName = releaseValue("MS_STORE_IDENTITY_NAME", "packageIdentityName") || "WorksBienStudiosInc.CheckPrinter.DEVELOPMENT";
++const publisher = releaseValue("MS_STORE_PUBLISHER", "publisherSubject") || "CN=WorksBien Development";
++const publisherDisplayName = releaseValue("MS_STORE_PUBLISHER_DISPLAY_NAME", "publisherDisplayName") || "WorksBien Studios Inc. (Development)";
+ const msixArch = process.env.MSIX_ARCH;
+ const bridgeResource = msixArch ? `resources/store-bridge/${msixArch}` : undefined;
+ 
+@@ -22,12 +32,13 @@ function discoverWindowsKitVersion(arch) {
+ 
+ const windowsKitVersion = discoverWindowsKitVersion(msixArch);
+ 
+-if (process.env.MS_STORE_RELEASE === "1") {
+-  const missing = ["MS_STORE_IDENTITY_NAME", "MS_STORE_PUBLISHER", "MS_STORE_PUBLISHER_DISPLAY_NAME"].filter((name) => !process.env[name]);
+-  if (missing.length) throw new Error(`Store release packaging requires exact Partner Center values: ${missing.join(", ")}`);
++if (release) {
+   if (/DEVELOPMENT|WorksBien Development/.test(`${identityName}|${publisher}|${publisherDisplayName}`)) {
+     throw new Error("Store release packaging refuses development identity values.");
+   }
++  if (!productionConfig.packageFamilyName || !/^[A-Z0-9]{12}$/i.test(productionConfig.appStoreId) || !/^[A-Z0-9]{12}$/i.test(productionConfig.lifetimeAddOnStoreId)) {
++    throw new Error("The canonical Partner Center configuration is incomplete.");
++  }
+ }
+ 
+ /** @type {import('@electron-forge/shared-types').ForgeConfig} */
+diff --git a/windows-host/scripts/generate-msix-manifest.mjs b/windows-host/scripts/generate-msix-manifest.mjs
+index 5d77682..ae7f7c9 100644
+--- a/windows-host/scripts/generate-msix-manifest.mjs
++++ b/windows-host/scripts/generate-msix-manifest.mjs
+@@ -7,15 +7,24 @@ const arch = process.env.MSIX_ARCH;
+ if (arch !== "x64" && arch !== "arm64") throw new Error("MSIX_ARCH must be x64 or arm64.");
+ 
+ const release = process.env.MS_STORE_RELEASE === "1";
+-const identity = process.env.MS_STORE_IDENTITY_NAME || "WorksBienStudiosInc.CheckPrinter.DEVELOPMENT";
+-const publisher = process.env.MS_STORE_PUBLISHER || "CN=WorksBien Development";
+-const publisherDisplayName = process.env.MS_STORE_PUBLISHER_DISPLAY_NAME || "WorksBien Studios Inc. (Development)";
+-if (release && (!process.env.MS_STORE_IDENTITY_NAME || !process.env.MS_STORE_PUBLISHER || !process.env.MS_STORE_PUBLISHER_DISPLAY_NAME)) {
+-  throw new Error("Release manifest generation requires exact Partner Center identity values.");
+-}
++const productionConfig = JSON.parse(await readFile(resolve(root, "src", "product", "partner-center.production.json"), "utf8"));
++const releaseValue = (environmentName, configName) => {
++  const configured = String(productionConfig[configName] || "");
++  const override = process.env[environmentName];
++  if (release && override && override !== configured) {
++    throw new Error(`${environmentName} does not match the canonical Partner Center configuration.`);
++  }
++  return release ? configured : override;
++};
++const identity = releaseValue("MS_STORE_IDENTITY_NAME", "packageIdentityName") || "WorksBienStudiosInc.CheckPrinter.DEVELOPMENT";
++const publisher = releaseValue("MS_STORE_PUBLISHER", "publisherSubject") || "CN=WorksBien Development";
++const publisherDisplayName = releaseValue("MS_STORE_PUBLISHER_DISPLAY_NAME", "publisherDisplayName") || "WorksBien Studios Inc. (Development)";
+ if (release && /DEVELOPMENT|WorksBien Development/u.test(`${identity}|${publisher}|${publisherDisplayName}`)) {
+   throw new Error("Release manifest generation refuses development identity values.");
+ }
++if (release && (!productionConfig.packageFamilyName || !/^[A-Z0-9]{12}$/iu.test(productionConfig.appStoreId) || !/^[A-Z0-9]{12}$/iu.test(productionConfig.lifetimeAddOnStoreId))) {
++  throw new Error("The canonical Partner Center configuration is incomplete.");
++}
+ 
+ const packageJson = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
+ const parts = String(packageJson.version).split(".");
+diff --git a/windows-host/src/application/main.ts b/windows-host/src/application/main.ts
+index 8561224..b818040 100644
+--- a/windows-host/src/application/main.ts
++++ b/windows-host/src/application/main.ts
+@@ -13,7 +13,11 @@ import { localize } from "../../../src/localization.ts";
+ import type { NativePrintOutcome } from "../../../src/host-contract.ts";
+ import type { AppLocale } from "../../../src/types.ts";
+ import type { PrintSubmission } from "../platform/contracts.ts";
+-import type { PartnerCenterIdentity } from "../product/product-identity.ts";
++import {
++  resolvePartnerCenterIdentity,
++  storeAssociationEnabled,
++  type PartnerCenterIdentity,
++} from "../product/product-identity.ts";
+ import { PreUiApplicationBridge } from "./ui-bridge.ts";
+ import { openPreUiApplication, type PreUiApplication } from "./pre-ui-host.ts";
+ import { FileUiStateStore } from "./ui-session-store.ts";
+@@ -130,22 +134,12 @@ function nativeWindowHandle(window: BrowserWindow): number {
+ }
+ 
+ function partnerCenterIdentity(): PartnerCenterIdentity {
+-  return {
+-    packageIdentityName: process.env.WORKSBIEN_PACKAGE_IDENTITY_NAME ?? APP_USER_MODEL_ID,
+-    packageFamilyName: process.env.WORKSBIEN_PACKAGE_FAMILY_NAME ?? "not-store-associated",
+-    publisherSubject: process.env.WORKSBIEN_PUBLISHER_SUBJECT ?? "not-store-associated",
+-    appStoreId: process.env.WORKSBIEN_APP_STORE_ID ?? "000000000000",
+-    lifetimeAddOnStoreId: process.env.WORKSBIEN_LIFETIME_STORE_ID ?? "000000000001",
+-  };
++  return resolvePartnerCenterIdentity(process.windowsStore === true, process.env);
+ }
+ 
+ function storeAssociated(identity: PartnerCenterIdentity): boolean {
+   return app.isPackaged
+-    && process.env.WORKSBIEN_STORE_ASSOCIATED === "1"
+-    && identity.packageFamilyName !== "not-store-associated"
+-    && identity.publisherSubject !== "not-store-associated"
+-    && identity.appStoreId !== "000000000000"
+-    && identity.lifetimeAddOnStoreId !== "000000000001";
++    && storeAssociationEnabled(process.windowsStore === true, identity, process.env);
+ }
+ 
+ async function confirmPhysicalOutcome(locale: AppLocale): Promise<NativePrintOutcome> {
+diff --git a/windows-host/src/product/partner-center.production.json b/windows-host/src/product/partner-center.production.json
+new file mode 100644
+index 0000000..1124d04
+--- /dev/null
++++ b/windows-host/src/product/partner-center.production.json
+@@ -0,0 +1,8 @@
++{
++  "packageIdentityName": "WorksBienStudiosInc.CheckPrinterCheckWriter",
++  "packageFamilyName": "WorksBienStudiosInc.CheckPrinterCheckWriter_30gx9csnzx4ry",
++  "publisherSubject": "CN=91C84CDB-D12C-4F89-8F2C-8EF1A15DF7F3",
++  "publisherDisplayName": "WorksBien Studios Inc.",
++  "appStoreId": "9PKWNPRZQCVM",
++  "lifetimeAddOnStoreId": "9NMS13S9NWGH"
++}
+diff --git a/windows-host/src/product/product-identity.ts b/windows-host/src/product/product-identity.ts
+index 737c1af..7d02964 100644
+--- a/windows-host/src/product/product-identity.ts
++++ b/windows-host/src/product/product-identity.ts
+@@ -1,3 +1,26 @@
++import productionPartnerCenterConfig from "./partner-center.production.json" with { type: "json" };
++
++export interface PartnerCenterIdentity {
++  packageIdentityName: string;
++  packageFamilyName: string;
++  publisherSubject: string;
++  appStoreId: string;
++  lifetimeAddOnStoreId: string;
++}
++
++export interface PartnerCenterReleaseConfig extends PartnerCenterIdentity {
++  publisherDisplayName: string;
++}
++
++export const PRODUCTION_PARTNER_CENTER_CONFIG = Object.freeze({
++  packageIdentityName: productionPartnerCenterConfig.packageIdentityName,
++  packageFamilyName: productionPartnerCenterConfig.packageFamilyName,
++  publisherSubject: productionPartnerCenterConfig.publisherSubject,
++  publisherDisplayName: productionPartnerCenterConfig.publisherDisplayName,
++  appStoreId: productionPartnerCenterConfig.appStoreId,
++  lifetimeAddOnStoreId: productionPartnerCenterConfig.lifetimeAddOnStoreId,
++}) satisfies Readonly<PartnerCenterReleaseConfig>;
++
+ export const STORE_PRODUCT = Object.freeze({
+   storeTitle: "Check Printer & Check Writer",
+   packageDisplayName: "Check Printer & Check Writer",
+@@ -5,7 +28,7 @@ export const STORE_PRODUCT = Object.freeze({
+   packageIdentityNamePlaceholder: "WorksBienStudios.CheckPrinterCheckWriter",
+   lifetimeAddOn: Object.freeze({
+     inAppOfferToken: "lifetime_unlock",
+-    storeId: undefined as string | undefined,
++    storeId: PRODUCTION_PARTNER_CENTER_CONFIG.lifetimeAddOnStoreId,
+     productKind: "DURABLE" as const,
+     duration: "NEVER_EXPIRES" as const,
+   }),
+@@ -29,16 +52,18 @@ export const LAUNCH_HOST_LOCALES = Object.freeze([
+ 
+ export const DEFERRED_HOST_LOCALES = Object.freeze(["es-US"] as const);
+ 
+-export interface PartnerCenterIdentity {
+-  packageIdentityName: string;
+-  packageFamilyName: string;
+-  publisherSubject: string;
+-  appStoreId: string;
+-  lifetimeAddOnStoreId: string;
+-}
+-
+ const STORE_ID_PATTERN = /^[A-Z0-9]{12}$/i;
+ 
++export interface StoreIdentityEnvironment {
++  [name: string]: string | undefined;
++  WORKSBIEN_PACKAGE_IDENTITY_NAME?: string;
++  WORKSBIEN_PACKAGE_FAMILY_NAME?: string;
++  WORKSBIEN_PUBLISHER_SUBJECT?: string;
++  WORKSBIEN_APP_STORE_ID?: string;
++  WORKSBIEN_LIFETIME_STORE_ID?: string;
++  WORKSBIEN_STORE_ASSOCIATED?: string;
++}
++
+ function present(value: string): boolean {
+   return value.trim().length > 0;
+ }
+@@ -68,3 +93,35 @@ export function validatePartnerCenterIdentity(
+   }
+   return failures;
+ }
++
++/**
++ * A Store-installed package always uses the immutable Partner Center identity
++ * compiled into the release. Environment overrides remain available only for
++ * unpackaged development and adapter testing.
++ */
++export function resolvePartnerCenterIdentity(
++  windowsStore: boolean,
++  environment: StoreIdentityEnvironment,
++): PartnerCenterIdentity {
++  if (windowsStore) return PRODUCTION_PARTNER_CENTER_CONFIG;
++  return {
++    packageIdentityName: environment.WORKSBIEN_PACKAGE_IDENTITY_NAME
++      ?? STORE_PRODUCT.packageIdentityNamePlaceholder,
++    packageFamilyName: environment.WORKSBIEN_PACKAGE_FAMILY_NAME
++      ?? "not-store-associated",
++    publisherSubject: environment.WORKSBIEN_PUBLISHER_SUBJECT
++      ?? "not-store-associated",
++    appStoreId: environment.WORKSBIEN_APP_STORE_ID ?? "000000000000",
++    lifetimeAddOnStoreId: environment.WORKSBIEN_LIFETIME_STORE_ID
++      ?? "000000000001",
++  };
++}
++
++export function storeAssociationEnabled(
++  windowsStore: boolean,
++  identity: PartnerCenterIdentity,
++  environment: StoreIdentityEnvironment,
++): boolean {
++  const requested = windowsStore || environment.WORKSBIEN_STORE_ASSOCIATED === "1";
++  return requested && validatePartnerCenterIdentity(identity).length === 0;
++}
+diff --git a/windows-host/test/product/product-contract.test.ts b/windows-host/test/product/product-contract.test.ts
+index 5cb03d4..be1f9a5 100644
+--- a/windows-host/test/product/product-contract.test.ts
++++ b/windows-host/test/product/product-contract.test.ts
+@@ -4,7 +4,16 @@ import test from "node:test";
+ import { loadHostCatalogs } from "../../src/product/catalog-loader.ts";
+ import { CUSTOMER_STATE_MODEL } from "../../src/product/customer-states.ts";
+ import { FIRST_LIVE_CHEQUE_FLOW, ONBOARDING_FLOW, PRIMARY_NAVIGATION, ROUTES } from "../../src/product/navigation.ts";
+-import { DEFERRED_HOST_LOCALES, FREE_LIVE_CHEQUE_LIMIT, LAUNCH_HOST_LOCALES, STORE_PRODUCT, validatePartnerCenterIdentity } from "../../src/product/product-identity.ts";
++import {
++  DEFERRED_HOST_LOCALES,
++  FREE_LIVE_CHEQUE_LIMIT,
++  LAUNCH_HOST_LOCALES,
++  PRODUCTION_PARTNER_CENTER_CONFIG,
++  STORE_PRODUCT,
++  resolvePartnerCenterIdentity,
++  storeAssociationEnabled,
++  validatePartnerCenterIdentity,
++} from "../../src/product/product-identity.ts";
+ 
+ test("Store identity, add-on model and locked catalog targets are explicit", () => {
+   assert.equal(STORE_PRODUCT.storeTitle, "Check Printer & Check Writer");
+@@ -13,11 +22,51 @@ test("Store identity, add-on model and locked catalog targets are explicit", ()
+   assert.equal(STORE_PRODUCT.lifetimeAddOn.inAppOfferToken, "lifetime_unlock");
+   assert.equal(STORE_PRODUCT.lifetimeAddOn.productKind, "DURABLE");
+   assert.equal(STORE_PRODUCT.lifetimeAddOn.duration, "NEVER_EXPIRES");
+-  assert.equal(STORE_PRODUCT.lifetimeAddOn.storeId, undefined);
++  assert.equal(STORE_PRODUCT.lifetimeAddOn.storeId, "9NMS13S9NWGH");
+   assert.deepEqual(STORE_PRODUCT.targetCatalogPrices, { US: { currency: "USD", minorUnits: 1999 }, CA: { currency: "CAD", minorUnits: 2599 } });
+   assert.equal(FREE_LIVE_CHEQUE_LIMIT, 3);
+ });
+ 
++test("production packages use the exact Partner Center identity and cannot be redirected by environment variables", () => {
++  assert.deepEqual(PRODUCTION_PARTNER_CENTER_CONFIG, {
++    packageIdentityName: "WorksBienStudiosInc.CheckPrinterCheckWriter",
++    packageFamilyName: "WorksBienStudiosInc.CheckPrinterCheckWriter_30gx9csnzx4ry",
++    publisherSubject: "CN=91C84CDB-D12C-4F89-8F2C-8EF1A15DF7F3",
++    publisherDisplayName: "WorksBien Studios Inc.",
++    appStoreId: "9PKWNPRZQCVM",
++    lifetimeAddOnStoreId: "9NMS13S9NWGH",
++  });
++  assert.deepEqual(validatePartnerCenterIdentity(PRODUCTION_PARTNER_CENTER_CONFIG), []);
++
++  const redirected = resolvePartnerCenterIdentity(true, {
++    WORKSBIEN_APP_STORE_ID: "9AAAAAAAAAAA",
++    WORKSBIEN_LIFETIME_STORE_ID: "9BBBBBBBBBBB",
++  });
++  assert.deepEqual(redirected, PRODUCTION_PARTNER_CENTER_CONFIG);
++  assert.equal(storeAssociationEnabled(true, redirected, {}), true);
++});
++
++test("development builds remain Store-unassociated unless an explicit complete test identity is supplied", () => {
++  const defaults = resolvePartnerCenterIdentity(false, {});
++  assert.equal(storeAssociationEnabled(false, defaults, {}), false);
++
++  const testIdentity = {
++    packageIdentityName: "WorksBien.Tests.CheckPrinter",
++    packageFamilyName: "WorksBien.Tests.CheckPrinter_1234567890abc",
++    publisherSubject: "CN=WorksBien Tests",
++    appStoreId: "9AAAAAAAAAAA",
++    lifetimeAddOnStoreId: "9BBBBBBBBBBB",
++  };
++  assert.deepEqual(resolvePartnerCenterIdentity(false, {
++    WORKSBIEN_PACKAGE_IDENTITY_NAME: testIdentity.packageIdentityName,
++    WORKSBIEN_PACKAGE_FAMILY_NAME: testIdentity.packageFamilyName,
++    WORKSBIEN_PUBLISHER_SUBJECT: testIdentity.publisherSubject,
++    WORKSBIEN_APP_STORE_ID: testIdentity.appStoreId,
++    WORKSBIEN_LIFETIME_STORE_ID: testIdentity.lifetimeAddOnStoreId,
++  }), testIdentity);
++  assert.equal(storeAssociationEnabled(false, testIdentity, { WORKSBIEN_STORE_ASSOCIATED: "1" }), true);
++});
++
+ test("Partner Center placeholder is rejected and the generated Store IDs are mandatory", () => {
+   assert.ok(validatePartnerCenterIdentity({
+     packageIdentityName: STORE_PRODUCT.packageIdentityNamePlaceholder,
+diff --git a/windows-host/tsconfig.json b/windows-host/tsconfig.json
+index f11d3a0..ad4b8c0 100644
+--- a/windows-host/tsconfig.json
++++ b/windows-host/tsconfig.json
+@@ -7,6 +7,7 @@
+     "outDir": "dist",
+     "strict": true,
+     "noEmitOnError": true,
++    "resolveJsonModule": true,
+     "rewriteRelativeImportExtensions": true,
+     "verbatimModuleSyntax": true,
+     "skipLibCheck": true,
+-- 
+2.51.1
+
