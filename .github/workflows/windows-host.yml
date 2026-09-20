@@ -12,6 +12,12 @@ on:
       - "windows-host/**"
       - ".github/workflows/windows-host.yml"
   workflow_dispatch:
+    inputs:
+      store_release:
+        description: Build with the production Partner Center identity
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -25,6 +31,7 @@ jobs:
         working-directory: windows-host
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      MS_STORE_RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.store_release && '1' || '0' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -90,6 +97,12 @@ jobs:
             if ($manifest -notmatch 'Capability Name="runFullTrust"') { throw "runFullTrust is missing from $($package.Name)." }
             if ($manifest -match 'internetClient') { throw "Unexpected internetClient capability in $($package.Name)." }
             if ($manifest -match '\$\{') { throw "Unresolved manifest variable in $($package.Name)." }
+            if ($env:MS_STORE_RELEASE -eq '1') {
+              if ($manifest -match 'DEVELOPMENT|WorksBien Development') { throw "Development identity found in Store release $($package.Name)." }
+              if ($manifest -notmatch 'Name="WorksBienStudiosInc\.CheckPrinterCheckWriter"') { throw "Production identity name is missing from $($package.Name)." }
+              if ($manifest -notmatch 'Publisher="CN=91C84CDB-D12C-4F89-8F2C-8EF1A15DF7F3"') { throw "Production publisher is missing from $($package.Name)." }
+              if ($manifest -notmatch '<PublisherDisplayName>WorksBien Studios Inc\.</PublisherDisplayName>') { throw "Production publisher display name is missing from $($package.Name)." }
+            }
             if ($manifest -notmatch 'Executable="app\\CheckPrinterCheckWriter\.exe"') { throw "Packaged executable path is wrong in $($package.Name)." }
             $expectedArch = if ($package.FullName -match 'arm64') { 'arm64' } else { 'x64' }
             if ($manifest -notmatch ('ProcessorArchitecture="' + $expectedArch + '"')) { throw "Wrong architecture in $($package.Name)." }
@@ -98,7 +111,7 @@ jobs:
           }
       - uses: actions/upload-artifact@v4
         with:
-          name: worksbien-check-printer-msix
+          name: ${{ env.MS_STORE_RELEASE == '1' && 'worksbien-check-printer-store-release-msix' || 'worksbien-check-printer-msix' }}
           path: windows-host/out/make/**/*.msix
           if-no-files-found: error
           retention-days: 14
