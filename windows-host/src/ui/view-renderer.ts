@@ -133,8 +133,8 @@ function renderHome(model: HomeViewModel, localizer: UiLocalizer): string {
   const account = model.selectedAccount;
   const profile = model.selectedProfile;
   const ready = model.readiness === "READY";
-  const create = model.canCreateCheque
-    ? routeButton(`${icon("plus")} ${t(localizer, "action.newCheque", "New check")}`, "CHEQUE_NEW", "primary")
+  const setupAction = model.canCreateCheque
+    ? ""
     : routeButton(t(localizer, "action.openSettings", "Open settings"), model.readiness === "ACCOUNT_REQUIRED" ? "SETTINGS_ACCOUNTS" : "SETTINGS_CALIBRATION", "primary");
   const recent = model.recentChecks.length > 0
     ? `<div class="table-scroll"><table class="data-table"><thead><tr><th>${t(localizer, "register.column.number", "Number")}</th><th>${t(localizer, "register.column.date", "Date")}</th><th>${t(localizer, "register.column.payee", "Payee")}</th><th class="numeric">${t(localizer, "register.column.amount", "Amount")}</th><th>${t(localizer, "register.column.status", "Status")}</th></tr></thead><tbody>${checkRows(localizer, model.recentChecks)}</tbody></table></div>`
@@ -151,7 +151,7 @@ function renderHome(model: HomeViewModel, localizer: UiLocalizer): string {
   return `${heading(
     t(localizer, "dashboard.title", "Operations desk"),
     t(localizer, "dashboard.subtitle", "Prepare, print and reconcile business checks."),
-    create,
+    setupAction,
   )}
   <div class="readiness-row"><span class="readiness-pill" data-ready="${ready}">${escapeHtml(message(localizer, model.readinessMessage))}</span><span>${t(localizer, "app.dataSaved", "Changes save automatically on this device.")}</span></div>
   <section class="metric-grid" aria-label="${escapeHtml(t(localizer, "a11y.readiness", "Print readiness summary"))}">
@@ -212,8 +212,8 @@ function renderCheques(model: ChequesViewModel, localizer: UiLocalizer): string 
     .filter((check, index, all) => all.findIndex((candidate) => candidate.id === check.id) === index);
   const body = checks.length
     ? `<section class="panel"><div class="table-scroll"><table class="data-table"><thead><tr><th>${t(localizer, "register.column.number", "Number")}</th><th>${t(localizer, "register.column.date", "Date")}</th><th>${t(localizer, "register.column.payee", "Payee")}</th><th class="numeric">${t(localizer, "register.column.amount", "Amount")}</th><th>${t(localizer, "register.column.status", "Status")}</th><th><span class="sr-only">${t(localizer, "dashboard.quickActions", "Actions")}</span></th></tr></thead><tbody>${checkRows(localizer, checks, true)}</tbody></table></div></section>`
-    : emptyPanel(t(localizer, "state.common.empty.title", "Nothing here yet"), t(localizer, "state.cheque.empty.body", "Create a new check."), routeButton(t(localizer, "action.newCheque", "New check"), "CHEQUE_NEW", "primary"));
-  return `${heading(t(localizer, "nav.cheques", "Checks"), t(localizer, "state.cheque.idle.body", "Create and manage checks."), routeButton(`${icon("plus")} ${t(localizer, "action.newCheque", "New check")}`, "CHEQUE_NEW", "primary"))}${body}`;
+    : emptyPanel(t(localizer, "state.common.empty.title", "Nothing here yet"), t(localizer, "state.cheque.empty.body", "Create a new check."));
+  return `${heading(t(localizer, "nav.cheques", "Checks"), t(localizer, "state.cheque.idle.body", "Create and manage checks."))}${body}`;
 }
 
 function amountInputValue(model: ChequeEditorViewModel): string {
