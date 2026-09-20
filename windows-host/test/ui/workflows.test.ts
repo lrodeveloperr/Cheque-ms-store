@@ -101,11 +101,27 @@ test("first launch is resumable and completes every setup checkpoint", async () 
   const resumed = new UiWorkflowController(bridge, store, { now: () => NOW });
   assert.equal((await resumed.initialize()).route, "ONBOARDING_PRINTER");
   assert.equal(resumed.session.startSlot, 2);
+  assert.equal((await resumed.refreshPrinters()).ok, true);
   assert.equal((await resumed.selectOnboardingPrinter("Microsoft Print to PDF")).ok, true);
   const calibrated = await resumed.saveOnboardingCalibration("PDF three-up");
   assert.equal(calibrated.ok, true);
   assert.equal(resumed.session.route, "HOME");
   assert.equal(resumed.view().kind, "HOME");
+});
+
+test("app initialization never waits for Windows printer discovery", async () => {
+  class TrackingBridge extends MemoryUiApplicationBridge {
+    printerDiscoveryCalls = 0;
+    override async listPrinters() {
+      this.printerDiscoveryCalls += 1;
+      return super.listPrinters();
+    }
+  }
+  const bridge = new TrackingBridge({ now: () => NOW });
+  const controller = new UiWorkflowController(bridge, new MemoryUiStateStore(), { now: () => NOW });
+
+  assert.equal((await controller.initialize()).route, "ONBOARDING_WELCOME");
+  assert.equal(bridge.printerDiscoveryCalls, 0);
 });
 
 test("route guards refuse unsafe deep links without changing the current route", async () => {

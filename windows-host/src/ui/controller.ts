@@ -89,7 +89,6 @@ export class UiWorkflowController {
       const restored = await this.#stateStore.load();
       if (restored?.version === 1) this.#session = restored;
       const firstLaunch = restored === undefined;
-      try { this.#printers = await this.#bridge.listPrinters(); } catch { this.#printers = []; }
       const state = this.#bridge.snapshot();
       this.#reconcileSelections(state);
       const pending = pendingPrintFromState(state);
@@ -162,6 +161,10 @@ export class UiWorkflowController {
 
   async chooseOnboardingLayout(layout: LayoutKind, startSlot: 0 | 1 | 2 = 0): Promise<UiOperationResult> {
     return this.#runAction(async () => {
+      // Windows printer enumeration can block inside the native spooler before
+      // Electron returns a promise. Never make it part of app startup; defer it
+      // until the workflow actually needs a printer.
+      try { this.#printers = await this.#bridge.listPrinters(); } catch { this.#printers = []; }
       const normalizedSlot = layout === "THREE_UP" ? startSlot : 0;
       this.#session = {
         ...this.#session,
