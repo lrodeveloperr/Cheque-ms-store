@@ -21,14 +21,30 @@ import { DesktopUiRuntime, type UiRuntimeFilePicker } from "./ui-runtime.ts";
 import { UiWorkflowController } from "../ui/controller.ts";
 import type { UiActionRequest } from "../ui/ipc-contract.ts";
 import type { UiCatalog, UiCatalogBundle } from "../ui/i18n.ts";
+import { RuntimeStartup } from "./runtime-startup.ts";
 
 const APP_USER_MODEL_ID = "WorksBienStudios.CheckPrinterCheckWriter";
 const APP_TITLE = "Check Printer & Check Writer";
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
 let mainWindow: BrowserWindow | undefined;
 let application: PreUiApplication | undefined;
-let runtimePromise: Promise<DesktopUiRuntime> | undefined;
+const runtimeStartup = new RuntimeStartup<DesktopUiRuntime>((error) => {
+  console.error("Application runtime initialization failed.", error);
+});
 let shutdownStarted = false;
+
+function startupSelfTestEnabled(): boolean {
+  return process.env.WORKSBIEN_STARTUP_SELF_TEST === "1";
+}
+
+async function exitApplication(code: number): Promise<void> {
+  if (shutdownStarted) return;
+  shutdownStarted = true;
+  const openedApplication = application;
+  application = undefined;
+  if (openedApplication) await openedApplication.close().catch(() => undefined);
+  app.exit(code);
+}
 
 function resolveUiFile(): string {
   const candidates = [
@@ -220,7 +236,7 @@ async function createRuntime(): Promise<DesktopUiRuntime> {
   return new DesktopUiRuntime(new UiWorkflowController(bridge, stateStore), filePicker());
 }
 
-function createMainWindow(): BrowserWindow {
+function createMainWindow(loadUi = true): BrowserWindow {
   const window = new BrowserWindow({
     title: APP_TITLE,
     width: 1280,
@@ -247,12 +263,14 @@ function createMainWindow(): BrowserWindow {
   window.webContents.on("will-attach-webview", (event) => event.preventDefault());
   window.webContents.on("will-navigate", (event) => event.preventDefault());
   window.webContents.session.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
-  window.once("ready-to-show", () => window.show());
+  if (loadUi) window.once("ready-to-show", () => window.show());
   window.on("closed", () => { if (mainWindow === window) mainWindow = undefined; });
-  void window.loadFile(resolveUiFile()).catch(() => {
-    window.destroy();
-    app.exit(1);
-  });
+  if (loadUi) {
+    void window.loadFile(resolveUiFile()).catch(() => {
+      window.destroy();
+      void exitApplication(1);
+    });
+  }
   return window;
 }
 
@@ -270,20 +288,28 @@ if (!app.requestSingleInstanceLock({ product: APP_TITLE })) {
   ipcMain.handle("app:get-version", () => app.getVersion());
   ipcMain.handle("app:get-ui-catalogs", () => loadUiCatalogs());
   ipcMain.handle("app:renderer-ready", () => undefined);
-  ipcMain.handle("ui:initialize", async () => (await runtimePromise!).initialize());
-  ipcMain.handle("ui:action", async (_event, request: UiActionRequest) => (await runtimePromise!).perform(request));
+  ipcMain.handle("ui:initialize", async () => (await runtimeStartup.require()).initialize());
+  ipcMain.handle("ui:action", async (_event, request: UiActionRequest) => (await runtimeStartup.require()).perform(request));
 
-  void app.whenReady().then(() => {
+  void app.whenReady().then(async () => {
     app.setAppUserModelId(APP_USER_MODEL_ID);
-    mainWindow = createMainWindow();
-    runtimePromise = createRuntime();
+    mainWindow = createMainWindow(!startupSelfTestEnabled());
+    const runtime = runtimeStartup.start(createRuntime);
+    if (startupSelfTestEnabled()) {
+      await (await runtime).initialize();
+      await exitApplication(0);
+      return;
+    }
     app.on("activate", () => {
       if (!mainWindow || mainWindow.isDestroyed()) {
         mainWindow = createMainWindow();
-        if (!runtimePromise) runtimePromise = createRuntime();
+        runtimeStartup.start(createRuntime);
       } else focusExistingWindow();
     });
-  }).catch(() => app.exit(1));
+  }).catch((error: unknown) => {
+    console.error("Application startup failed.", error);
+    void exitApplication(1);
+  });
 
   app.on("before-quit", (event) => {
     if (!application || shutdownStarted) return;

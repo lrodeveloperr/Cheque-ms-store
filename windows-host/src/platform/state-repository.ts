@@ -1,6 +1,6 @@
 import { stat } from "node:fs/promises";
 import { createEmptyState } from "../../../src/engine.ts";
-import type { Entitlement, EngineState } from "../../../src/types.ts";
+import type { EngineState } from "../../../src/types.ts";
 import type { AppPaths, PlatformSession, SecretStorePort, StateStorePort } from "./contracts.ts";
 import { requireBackupPath } from "./paths.ts";
 
@@ -22,7 +22,7 @@ export class WindowsStateRepository {
     this.#stateStore = stateStore;
   }
 
-  async open(entitlement: Entitlement): Promise<PlatformSession> {
+  async open(): Promise<PlatformSession> {
     const instanceLock = await this.#stateStore.acquireInstanceLock(this.#paths.stateFile);
     try {
       // The cross-process state lease must cover first creation of both the
@@ -32,7 +32,10 @@ export class WindowsStateRepository {
       let state: EngineState;
       if (await fileExists(this.#paths.stateFile)) state = await this.#stateStore.load(this.#paths.stateFile, secret);
       else {
-        state = createEmptyState(entitlement);
+        // An audit-empty state is valid only with the engine's canonical
+        // epoch FREE entitlement. Store verification is applied later through
+        // the engine so that it creates a corresponding audit entry.
+        state = createEmptyState();
         await this.#stateStore.save(this.#paths.stateFile, state, secret);
       }
       let closed = false;

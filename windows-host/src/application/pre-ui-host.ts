@@ -207,12 +207,7 @@ export async function openPreUiApplication(
     confirmOutcome: options.confirmOutcome,
     confirmUnknownLetter: options.confirmUnknownLetter,
   });
-  const verifiedAt = (options.now ?? (() => new Date()))().toISOString();
-  const session = await services.stateRepository.open({
-    kind: "FREE",
-    source: "LOCAL_FREE",
-    verifiedAt,
-  });
+  const session = await services.stateRepository.open();
   try {
     const engineHolder = { current: new CheckPrinterEngine(session.state) };
     const safeStorage = new ElectronSafeStoragePort(options.safeStorage);

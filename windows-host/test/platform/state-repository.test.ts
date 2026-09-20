@@ -3,14 +3,13 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { createEmptyState } from "../../../src/engine.ts";
-import type { Entitlement, EngineState } from "../../../src/types.ts";
+import { CheckPrinterEngine, createEmptyState } from "../../../src/engine.ts";
+import { EncryptedStateStore } from "../../../src/persistence.ts";
+import type { EngineState } from "../../../src/types.ts";
 import type { PrintPlan } from "../../../src/types.ts";
 import type { AppPaths, SecretStorePort, StateStorePort } from "../../src/platform/contracts.ts";
 import type { RestoreResult } from "../../../src/persistence.ts";
 import { WindowsStateRepository } from "../../src/platform/state-repository.ts";
-
-const entitlement: Entitlement = { kind: "FREE", source: "LOCAL_FREE", verifiedAt: new Date(0).toISOString() };
 
 class FakeSecretStore implements SecretStorePort {
   async getOrCreateStorageSecret(): Promise<string> { return "a-secure-storage-secret"; }
@@ -18,7 +17,7 @@ class FakeSecretStore implements SecretStorePort {
 
 class FakeStateStore implements StateStorePort {
   calls: string[] = [];
-  state = createEmptyState(entitlement);
+  state = createEmptyState();
   released = false;
   async acquireInstanceLock(): Promise<{ release(): Promise<void> }> { this.calls.push("lock"); return { release: async () => { this.released = true; } }; }
   async recoverInterruptedSave(): Promise<"NONE"> { this.calls.push("recover"); return "NONE"; }
@@ -63,7 +62,7 @@ async function paths(): Promise<AppPaths> {
 test("recovers before load, creates first state, and holds the data lock", async () => {
   const stateStore = new FakeStateStore();
   const repository = new WindowsStateRepository(await paths(), new FakeSecretStore(), stateStore);
-  const session = await repository.open(entitlement);
+  const session = await repository.open();
   assert.deepEqual(stateStore.calls, ["lock", "recover", "save:new"]);
   await session.save({ ...session.state, revision: 1 });
   assert.equal(stateStore.calls.at(-1), "save:0");
@@ -76,7 +75,7 @@ test("loads an existing encrypted state after interrupted-save recovery", async 
   const appPaths = await paths();
   await writeFile(appPaths.stateFile, "present");
   const stateStore = new FakeStateStore();
-  const session = await new WindowsStateRepository(appPaths, new FakeSecretStore(), stateStore).open(entitlement);
+  const session = await new WindowsStateRepository(appPaths, new FakeSecretStore(), stateStore).open();
   assert.deepEqual(stateStore.calls, ["lock", "recover", "load"]);
   await session.close();
 });
@@ -84,7 +83,7 @@ test("loads an existing encrypted state after interrupted-save recovery", async 
 test("routes backup and restore through validated .wbc files", async () => {
   const appPaths = await paths();
   const stateStore = new FakeStateStore();
-  const session = await new WindowsStateRepository(appPaths, new FakeSecretStore(), stateStore).open(entitlement);
+  const session = await new WindowsStateRepository(appPaths, new FakeSecretStore(), stateStore).open();
   await session.createBackup(join(appPaths.dataDirectory, "backup.wbc"), "recovery-passphrase");
   await session.restoreBackup(join(appPaths.dataDirectory, "backup.wbc"), "recovery-passphrase");
   assert.deepEqual(stateStore.calls.slice(-2), ["backup", "restore"]);
@@ -95,9 +94,29 @@ test("routes backup and restore through validated .wbc files", async () => {
 test("exposes the engine's durable queue boundary through the session", async () => {
   const appPaths = await paths();
   const stateStore = new FakeStateStore();
-  const session = await new WindowsStateRepository(appPaths, new FakeSecretStore(), stateStore).open(entitlement);
+  const session = await new WindowsStateRepository(appPaths, new FakeSecretStore(), stateStore).open();
   const result = await session.queuePrint({ checkIds: ["check-1"], calibrationProfileId: "calibration-1", printerKey: "printer-1", stockKey: "TOP_VOUCHER_STANDARD" });
   assert.equal(result.plan.documentId, "document-1");
   assert.equal(stateStore.calls.at(-1), "queue");
+  await session.close();
+});
+
+test("fresh install persists the engine's canonical audit-empty state", async () => {
+  const appPaths = await paths();
+  const stateStore = new EncryptedStateStore({ guardDirectory: appPaths.guardDirectory });
+  const session = await new WindowsStateRepository(
+    appPaths,
+    new FakeSecretStore(),
+    stateStore,
+  ).open();
+
+  assert.equal(session.state.revision, 0);
+  assert.equal(session.state.audit.length, 0);
+  assert.deepEqual(session.state.entitlement, {
+    kind: "FREE",
+    source: "LOCAL_FREE",
+    verifiedAt: new Date(0).toISOString(),
+  });
+  assert.doesNotThrow(() => new CheckPrinterEngine(session.state));
   await session.close();
 });

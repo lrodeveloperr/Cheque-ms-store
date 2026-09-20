@@ -67,17 +67,21 @@ jobs:
             $expectedArch = if ($package.FullName -match 'arm64') { 'arm64' } else { 'x64' }
             if ($manifest -notmatch ('ProcessorArchitecture="' + $expectedArch + '"')) { throw "Wrong architecture in $($package.Name)." }
           }
-      - name: Smoke-test the packaged x64 Electron host
+      - name: First-launch and initialize the packaged x64 Electron host
         shell: pwsh
         run: |
           $exe = Get-ChildItem -Path out -Recurse -Filter CheckPrinterCheckWriter.exe |
             Where-Object { $_.FullName -match 'win32-x64' } |
             Select-Object -First 1
           if (-not $exe) { throw 'Packaged x64 host executable was not found.' }
-          $process = Start-Process -FilePath $exe.FullName -PassThru
-          Start-Sleep -Seconds 3
-          if ($process.HasExited) { throw "Packaged host exited during startup with code $($process.ExitCode)." }
-          Stop-Process -Id $process.Id -Force
+          $freshUserData = Join-Path $env:RUNNER_TEMP ("check-printer-first-launch-" + [guid]::NewGuid().ToString())
+          $env:WORKSBIEN_STARTUP_SELF_TEST = '1'
+          $process = Start-Process -FilePath $exe.FullName -ArgumentList "--user-data-dir=$freshUserData" -PassThru
+          if (-not $process.WaitForExit(30000)) {
+            Stop-Process -Id $process.Id -Force
+            throw 'Packaged host did not complete first-launch UI initialization within 30 seconds.'
+          }
+          if ($process.ExitCode -ne 0) { throw "Packaged host failed first-launch UI initialization with code $($process.ExitCode)." }
       - uses: actions/upload-artifact@v4
         with:
           name: worksbien-check-printer-msix
