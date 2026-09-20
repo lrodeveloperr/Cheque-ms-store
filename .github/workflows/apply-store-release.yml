@@ -16,8 +16,8 @@ jobs:
       - name: Apply verified release patch
         run: |
           git apply --index --whitespace=error-all .github/0001-Configure-production-Store-identity-skip-ci.patch
+          git restore --staged --worktree .github/workflows/windows-host.yml
           rm .github/0001-Configure-production-Store-identity-skip-ci.patch
-          rm .github/workflows/apply-store-release.yml
           git add -A
           git diff --cached --check
           git config user.name "github-actions[bot]"
