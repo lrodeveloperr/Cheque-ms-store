@@ -52,10 +52,14 @@ jobs:
           $startupLog = Join-Path $env:RUNNER_TEMP ("check-printer-startup-" + [guid]::NewGuid().ToString() + ".log")
           $stdoutLog = "$startupLog.stdout"
           $stderrLog = "$startupLog.stderr"
+          Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
           $env:WORKSBIEN_STARTUP_SELF_TEST = '1'
           $env:WORKSBIEN_STARTUP_SELF_TEST_LOG = $startupLog
-          $process = Start-Process -FilePath $exe.FullName -ArgumentList @("--user-data-dir=$freshUserData", "--worksbien-startup-self-test", "--disable-gpu", "--enable-logging=stderr") -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog -PassThru
+          $process = Start-Process -FilePath $exe.FullName -ArgumentList @("--user-data-dir=$freshUserData", "--worksbien-startup-self-test", "--worksbien-startup-self-test-log=$startupLog", "--disable-gpu", "--enable-logging=stderr") -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog -PassThru
           if (-not $process.WaitForExit(30000)) {
+            $process.Refresh()
+            $process | Select-Object Id, ProcessName, Path, HasExited, Responding, MainWindowTitle | Format-List | Out-Host
+            Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -eq $process.Id -or $_.ParentProcessId -eq $process.Id } | Select-Object ProcessId, ParentProcessId, Name, CommandLine | Format-List | Out-Host
             Stop-Process -Id $process.Id -Force
             foreach ($log in @($startupLog, $stdoutLog, $stderrLog)) { if (Test-Path $log) { Get-Content $log | Out-Host } }
             throw 'Packaged host did not complete first-launch UI initialization within 30 seconds.'

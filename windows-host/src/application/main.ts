@@ -46,9 +46,14 @@ function startupSelfTestEnabled(): boolean {
     || process.argv.includes("--worksbien-startup-self-test");
 }
 
+function startupSelfTestLogPath(): string | undefined {
+  const argument = process.argv.find((value) => value.startsWith("--worksbien-startup-self-test-log="));
+  return process.env.WORKSBIEN_STARTUP_SELF_TEST_LOG
+    ?? argument?.slice("--worksbien-startup-self-test-log=".length);
+}
+
 function traceStartupSelfTest(phase: string, error?: unknown): void {
-  if (!startupSelfTestEnabled()) return;
-  const path = process.env.WORKSBIEN_STARTUP_SELF_TEST_LOG;
+  const path = startupSelfTestLogPath();
   if (!path) return;
   const detail = error instanceof Error
     ? ` ${error.name}: ${error.message}`
