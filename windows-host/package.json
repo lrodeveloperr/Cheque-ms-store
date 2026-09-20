@@ -1,6 +1,6 @@
 {
   "name": "@worksbien/check-printer-windows-host",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Windows desktop host for the locked WorksBien Check Printer engine",
   "author": "WorksBien Studios Inc.",
