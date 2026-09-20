@@ -1,6 +1,7 @@
 import { CheckPrinterEngine } from "../../../src/engine.ts";
 import { exactPrintJob, type ExactPrintJob } from "../../../src/host-contract.ts";
 import type { PlatformSession } from "../platform/contracts.ts";
+import type { RestoreResult } from "../../../src/persistence.ts";
 import {
   ElectronSafeStoragePort,
   type ElectronBrowserWindowConstructor,
@@ -155,6 +156,22 @@ export class PreUiApplication {
 
   async commit(expectedRevision = this.#session.state.revision): Promise<void> {
     await this.#runExclusive(() => this.#session.save(this.engine.snapshot(), expectedRevision));
+  }
+
+  async createBackup(destinationPath: string, recoveryPassphrase: string): Promise<void> {
+    await this.#runExclusive(() => this.#session.createBackup(destinationPath, recoveryPassphrase));
+  }
+
+  async restoreBackup(sourcePath: string, backupPassphrase: string): Promise<RestoreResult> {
+    return this.#runExclusive(async () => {
+      const result = await this.#session.restoreBackup(
+        sourcePath,
+        backupPassphrase,
+        this.#session.state.revision,
+      );
+      this.#engineHolder.current = new CheckPrinterEngine(result.state);
+      return structuredClone(result);
+    });
   }
 
   async close(): Promise<void> {

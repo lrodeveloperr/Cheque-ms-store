@@ -15,9 +15,11 @@
   },
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true});require('node:fs').rmSync('out',{recursive:true,force:true})\"",
+    "dev": "vite --config vite.config.mjs",
+    "start": "npm run build && electron .",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
-    "build": "tsc -p tsconfig.json",
-    "test": "node --test test/platform/*.test.ts test/product/*.test.ts test/application/*.test.ts",
+    "build": "tsc -p tsconfig.json && node scripts/copy-ui-assets.mjs",
+    "test": "node --test test/platform/*.test.ts test/product/*.test.ts test/application/*.test.ts test/ui/*.test.ts",
     "verify": "npm run typecheck && npm test && npm run build",
     "bridge:build": "dotnet build -c Release src/product/store-bridge/WorksBien.StoreBridge.csproj",
     "bridge:publish:x64": "dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o resources/store-bridge/x64 src/product/store-bridge/WorksBien.StoreBridge.csproj",
@@ -34,6 +36,10 @@
     "@types/node": "24.10.1",
     "cross-env": "10.1.0",
     "electron": "44.4.3",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vite": "^8.3.0"
+  },
+  "dependencies": {
+    "@tabler/icons-webfont": "^3.47.0"
   }
 }

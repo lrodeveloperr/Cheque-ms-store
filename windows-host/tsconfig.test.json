@@ -8,6 +8,7 @@
     "src/platform/**/*.ts",
     "src/product/**/*.ts",
     "src/application/**/*.ts",
+    "src/ui/**/*.ts",
     "test/**/*.ts",
     "../src/**/*.ts"
   ],

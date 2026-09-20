@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en-US" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+  <meta name="color-scheme" content="light dark">
+  <title>Check Printer &amp; Check Writer</title>
+  <link rel="stylesheet" href="./assets/tabler-icons.min.css">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#workspace-outlet" data-i18n="a11y.workspace">Check operations workspace</a>
+
+  <div class="app-shell" id="app-shell" data-route="HOME">
+    <aside class="sidebar" id="primary-sidebar" aria-label="Primary navigation" data-i18n-aria-label="a11y.sidebar">
+      <div class="brand" aria-label="Check Printer and Check Writer">
+        <span class="brand-mark" aria-hidden="true">
+          <i class="ti ti-printer"></i>
+        </span>
+        <span class="brand-copy"><strong>Check Printer</strong><small>Check Writer</small></span>
+      </div>
+
+      <nav class="primary-nav" aria-label="Primary navigation" data-i18n-aria-label="a11y.sidebar">
+        <button class="nav-item" type="button" data-route-target="HOME" data-route-title="Operations desk" data-i18n-route-title="dashboard.title" aria-current="page">
+          <i class="ti ti-home" aria-hidden="true"></i><span data-i18n="nav.home">Home</span>
+        </button>
+        <button class="nav-item" type="button" data-route-target="CHEQUES" data-route-title="Checks" data-i18n-route-title="nav.cheques">
+          <i class="ti ti-file-invoice" aria-hidden="true"></i><span data-i18n="nav.cheques">Checks</span>
+        </button>
+        <button class="nav-item" type="button" data-route-target="REGISTER" data-route-title="Register" data-i18n-route-title="nav.register">
+          <i class="ti ti-table" aria-hidden="true"></i><span data-i18n="nav.register">Register</span>
+        </button>
+        <button class="nav-item" type="button" data-route-target="PAYEES" data-route-title="Payees" data-i18n-route-title="nav.payees">
+          <i class="ti ti-users" aria-hidden="true"></i><span data-i18n="nav.payees">Payees</span>
+        </button>
+        <button class="nav-item" type="button" data-route-target="SETTINGS" data-route-title="Settings" data-i18n-route-title="nav.settings">
+          <i class="ti ti-settings" aria-hidden="true"></i><span data-i18n="nav.settings">Settings</span>
+        </button>
+      </nav>
+
+      <section class="sidebar-status" aria-labelledby="licence-status-label">
+        <small id="licence-status-label" data-i18n="purchase.status.free">Free mode</small>
+        <strong id="licence-status-value" data-i18n-count="home.freeRemaining" data-i18n-count-value="3">3 free real checks remain.</strong>
+        <span id="licence-status-detail" data-i18n="purchase.freeDisclosure">The first 3 real checks are free. Samples and calibration sheets do not count.</span>
+        <button type="button" class="sidebar-link" data-route-target="SETTINGS_PURCHASE" data-i18n="purchase.title">Lifetime Unlock</button>
+      </section>
+    </aside>
+
+    <main class="main-frame" id="main-frame">
+      <header class="topbar">
+        <div class="topbar-heading">
+          <span class="eyebrow" id="account-context" data-i18n="app.localOnly">Local-only workspace</span>
+          <h1 id="page-title" data-i18n="dashboard.title">Operations desk</h1>
+        </div>
+        <div class="topbar-actions" aria-label="Quick actions" data-i18n-aria-label="dashboard.quickActions">
+          <button class="search-command" type="button" data-command="OPEN_SEARCH">
+            <i class="ti ti-search" aria-hidden="true"></i>
+            <span data-i18n="register.search">Search checks</span><kbd>Ctrl K</kbd>
+          </button>
+          <button class="button button-secondary" type="button" data-command="PRINT_SAMPLE" data-i18n="action.printSample">Print free sample</button>
+          <button class="button button-primary" type="button" data-route-target="CHEQUE_NEW" data-route-title="New check" data-i18n-route-title="route.newCheque">
+            <i class="ti ti-plus" aria-hidden="true"></i>
+            <span data-i18n="action.newCheque">New check</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="status-banner" id="status-banner" role="status" hidden>
+        <span class="status-banner-icon" aria-hidden="true"></span>
+        <div><strong id="status-banner-title"></strong><p id="status-banner-body"></p></div>
+        <button type="button" class="icon-button" data-command="DISMISS_BANNER" aria-label="Close" data-i18n-aria-label="action.close">&times;</button>
+      </div>
+
+      <section class="workspace" id="workspace-main" aria-labelledby="page-title">
+        <div id="workspace-outlet" tabindex="-1">
+          <div class="dashboard-fallback" data-shell-fallback>
+            <div class="workspace-title">
+              <div><p data-i18n="app.dataSaved">Changes save automatically on this device.</p><h2 data-i18n="dashboard.title">Operations desk</h2></div>
+              <span class="readiness-pill" data-i18n="dashboard.notReady">Complete the items below before using live stock.</span>
+            </div>
+
+            <section class="metric-grid" id="readiness-panel" aria-label="Print readiness summary" data-i18n-aria-label="a11y.readiness">
+              <article class="metric-card"><span data-i18n="dashboard.metric.nextNumber">Next physical number</span><strong>—</strong><small data-i18n="empty.accounts">Add an account to start setup.</small></article>
+              <article class="metric-card"><span data-i18n="dashboard.metric.printer">Printer</span><strong>—</strong><small data-i18n="action.choosePrinter">Choose printer</small></article>
+              <article class="metric-card"><span data-i18n="dashboard.metric.stock">Stock layout</span><strong>—</strong><small data-i18n="empty.stock">Add a stock profile and calibrate it before live printing.</small></article>
+              <article class="metric-card"><span data-i18n="dashboard.metric.freeRemaining">Free checks remaining</span><strong>3 / 3</strong><small data-i18n-count="home.freeRemaining" data-i18n-count-value="3">3 free real checks remain.</small></article>
+            </section>
+
+            <div class="dashboard-grid">
+              <section class="panel empty-panel" aria-labelledby="recent-heading">
+                <div class="panel-heading"><div><h2 id="recent-heading" data-i18n="dashboard.activity">Recent activity</h2><p data-i18n="register.empty">Printed checks will appear here automatically.</p></div></div>
+                <div class="empty-message"><span class="empty-icon" aria-hidden="true">#</span><strong data-i18n="empty.recent">No recent check activity.</strong><p data-i18n="empty.register">Printed, voided and spoiled checks will appear here.</p><button class="button button-primary" type="button" data-route-target="ONBOARDING_WELCOME" data-i18n="action.startSetup">Start setup</button></div>
+              </section>
+              <aside class="panel setup-panel" aria-labelledby="setup-heading">
+                <div class="panel-heading"><div><h2 id="setup-heading" data-i18n="dashboard.readiness">Print readiness</h2><p data-i18n="dashboard.notReady">Complete the items below before using live stock.</p></div></div>
+                <ol class="setup-list">
+                  <li><span class="setup-index">1</span><div><strong data-i18n="account.title">Accounts</strong><small data-i18n="account.numberPrivacy">Do not enter routing, transit or online-banking credentials.</small></div><span class="setup-badge" data-i18n="a11y.required">Required</span></li>
+                  <li><span class="setup-index">2</span><div><strong data-i18n="stock.title">Stock profiles</strong><small data-i18n="empty.stock">Add a stock profile and calibrate it before live printing.</small></div><span class="setup-badge" data-i18n="a11y.required">Required</span></li>
+                  <li><span class="setup-index">3</span><div><strong data-i18n="settings.calibration">Printers and calibration</strong><small data-i18n="onboarding.calibration.body">Print on plain Letter paper at 100% or Actual size. Place it over your check stock and hold both sheets to a light.</small></div><span class="setup-badge" data-i18n="a11y.required">Required</span></li>
+                </ol>
+              </aside>
+            </div>
+          </div>
+        </div>
+
+        <section class="state-surface" id="shell-state-surface" data-kind="LOADING" aria-live="polite" tabindex="-1" hidden>
+          <span class="state-icon" aria-hidden="true"></span>
+          <h2 id="state-title" data-i18n="state.common.loading.title">Working…</h2>
+          <p id="state-body" data-i18n="state.home.loading.body">Loading the local summary and pending print work.</p>
+          <div class="state-actions">
+            <button class="button button-primary" id="state-primary" type="button" hidden></button>
+            <button class="button button-secondary" id="state-secondary" type="button" hidden></button>
+          </div>
+        </section>
+      </section>
+
+      <footer class="statusbar">
+        <span><i class="local-dot" aria-hidden="true"></i><span data-i18n="privacy.localOnly">Check records stay encrypted on this device unless you export, print or back them up.</span></span>
+        <span id="application-version" data-i18n="app.name">Check Printer &amp; Check Writer</span>
+      </footer>
+    </main>
+  </div>
+
+  <div class="busy-layer" id="busy-layer" role="status" aria-live="polite" hidden><span class="spinner" aria-hidden="true"></span><span id="busy-label" data-i18n="state.common.loading.title">Working…</span></div>
+  <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+  <div class="sr-only" id="shell-announcer" aria-live="assertive" aria-atomic="true"></div>
+
+  <dialog class="shell-dialog" id="shell-modal" aria-labelledby="modal-title" aria-describedby="modal-body">
+    <form method="dialog">
+      <div class="dialog-icon" id="modal-icon" aria-hidden="true">!</div>
+      <div class="dialog-copy"><h2 id="modal-title"></h2><p id="modal-body"></p></div>
+      <div class="dialog-actions">
+        <button class="button button-secondary" id="modal-cancel" value="cancel" data-i18n="action.cancel">Cancel</button>
+        <button class="button button-primary" id="modal-confirm" value="confirm" data-i18n="action.continue">Continue</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="./renderer.ts"></script>
+</body>
+</html>

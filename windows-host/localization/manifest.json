@@ -1,10 +1,43 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "baseLocale": "en-US",
   "locales": {
-    "en-US": { "file": "en-US.json" },
-    "en-CA": { "file": "en-US.json", "overrides": "en-CA.overrides.json" },
-    "fr-CA": { "file": "fr-CA.json" }
+    "en-US": {
+      "file": "en-US.json",
+      "fallback": null,
+      "jurisdiction": "US",
+      "currency": "USD",
+      "chequeTerm": "check"
+    },
+    "en-CA": {
+      "file": "en-US.json",
+      "overrides": "en-CA.overrides.json",
+      "fallback": "en-US",
+      "jurisdiction": "CA",
+      "currency": "CAD",
+      "chequeTerm": "cheque"
+    },
+    "fr-CA": {
+      "file": "fr-CA.json",
+      "fallback": "en-US",
+      "jurisdiction": "CA",
+      "currency": "CAD",
+      "chequeTerm": "chèque"
+    }
+  },
+  "formatting": {
+    "dates": "Intl.DateTimeFormat",
+    "numbers": "Intl.NumberFormat",
+    "currency": "Intl.NumberFormat currency style",
+    "plurals": "Intl.PluralRules with .one and .other keys",
+    "dateOnlyTimeZone": "UTC"
+  },
+  "validation": {
+    "requireBaseKeyParity": true,
+    "requirePlaceholderParity": true,
+    "rejectBlankValues": true,
+    "rejectUnknownOverrideKeys": true,
+    "rejectHardCodedCurrencyDateAndDecimalExamples": true
   },
   "excludedLocales": {
     "es-US": "Deferred until native cheque terminology, amount-word, print-fit and support QA have product-specific demand evidence."

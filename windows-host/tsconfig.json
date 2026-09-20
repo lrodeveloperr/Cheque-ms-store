@@ -16,6 +16,7 @@
     "src/platform/**/*.ts",
     "src/product/**/*.ts",
     "src/application/**/*.ts",
+    "src/ui/**/*.ts",
     "../src/**/*.ts"
   ],
   "exclude": [
