@@ -1,5 +1,9 @@
 # Check Printer & Check Writer package resources
 
-Store artwork belongs here once the listing identity is reserved. Do not reuse
-in-app artwork as Store identity assets. Electron Builder will generate its
-development defaults until approved Store assets are supplied.
+`app-icon.svg` is the source of truth for the Windows executable and MSIX tile
+artwork. `app-icon.ico` and the PNG files in `msix-assets/` are generated from
+that master and committed so Windows packaging does not depend on an image
+toolchain being present on the build runner.
+
+The in-app mark is a deliberately simplified derivative in
+`src/ui/assets/brand-mark.svg`; it remains legible in the 38 px sidebar slot.

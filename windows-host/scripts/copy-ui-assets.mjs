@@ -28,6 +28,7 @@ await cp(
   join(iconSource, "tabler-icons.min.css"),
   join(iconOutput, "tabler-icons.min.css"),
 );
+await cp(join(sourceUi, "assets", "brand-mark.svg"), join(iconOutput, "brand-mark.svg"));
 await mkdir(join(iconOutput, "fonts"), { recursive: true });
 for (const font of ["tabler-icons.woff", "tabler-icons.woff2"]) {
   await cp(

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title description">
+  <title id="title">Check Printer and Check Writer</title>
+  <desc id="description">A business check emerging from a desktop printer with a confirmation mark.</desc>
+  <rect x="32" y="32" width="960" height="960" rx="216" fill="#0b6cad"/>
+
+  <rect x="278" y="154" width="468" height="302" rx="30" fill="#ffffff" stroke="#102033" stroke-width="24"/>
+  <rect x="318" y="201" width="236" height="24" rx="12" fill="#93bfdc"/>
+  <rect x="318" y="250" width="346" height="18" rx="9" fill="#c7deec"/>
+
+  <rect x="140" y="344" width="744" height="344" rx="78" fill="#f8fbfd"/>
+  <path d="M140 506h744v104c0 43-35 78-78 78H218c-43 0-78-35-78-78V506Z" fill="#102033"/>
+  <rect x="242" y="523" width="540" height="54" rx="27" fill="#071724"/>
+  <circle cx="782" cy="424" r="28" fill="#0b6cad"/>
+  <circle cx="837" cy="424" r="14" fill="#102033"/>
+
+  <rect x="224" y="574" width="576" height="282" rx="24" fill="#ffffff" stroke="#b7d6e9" stroke-width="18"/>
+  <rect x="278" y="630" width="204" height="28" rx="14" fill="#2c75ae"/>
+  <rect x="278" y="690" width="330" height="20" rx="10" fill="#74a7cd"/>
+  <rect x="278" y="772" width="378" height="20" rx="10" fill="#74a7cd"/>
+  <rect x="638" y="624" width="112" height="68" rx="10" fill="none" stroke="#2c75ae" stroke-width="18"/>
+  <path d="m647 748 43 43 85-101" fill="none" stroke="#18a276" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

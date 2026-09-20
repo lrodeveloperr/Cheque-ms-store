@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 import { loadHostCatalogs } from "../../src/product/catalog-loader.ts";
 import { CUSTOMER_STATE_MODEL } from "../../src/product/customer-states.ts";
@@ -31,6 +31,31 @@ test("Partner Center placeholder is rejected and the generated Store IDs are man
 test("launch locales are exactly US English, Canadian English and Canadian French", () => {
   assert.deepEqual([...LAUNCH_HOST_LOCALES], ["en-US", "en-CA", "fr-CA"]);
   assert.deepEqual([...DEFERRED_HOST_LOCALES], ["es-US"]);
+});
+
+test("Windows packages and the in-app brand use approved printer-and-check artwork", async () => {
+  const forge = await readFile(new URL("../../packaging/forge.config.cjs", import.meta.url), "utf8");
+  const shell = await readFile(new URL("../../src/ui/index.html", import.meta.url), "utf8");
+  assert.match(forge, /resources\/app-icon\.ico/);
+  assert.match(forge, /resources\/msix-assets/);
+  assert.match(shell, /assets\/brand-mark\.svg/);
+  assert.doesNotMatch(shell, /ti-printer/);
+
+  const assets = [
+    "LockScreenLogo.scale-200.png",
+    "SplashScreen.scale-200.png",
+    "Square150x150Logo.png",
+    "Square150x150Logo.scale-200.png",
+    "Square44x44Logo.png",
+    "Square44x44Logo.scale-200.png",
+    "Square44x44Logo.targetsize-24_altform-unplated.png",
+    "Wide310x150Logo.scale-200.png",
+    "icon.png",
+  ];
+  await access(new URL("../../resources/app-icon.ico", import.meta.url));
+  await access(new URL("../../resources/app-icon.svg", import.meta.url));
+  await access(new URL("../../src/ui/assets/brand-mark.svg", import.meta.url));
+  await Promise.all(assets.map((asset) => access(new URL(`../../resources/msix-assets/${asset}`, import.meta.url))));
 });
 
 test("resolved host catalogs have identical non-empty keys and every state/route/action key", async () => {

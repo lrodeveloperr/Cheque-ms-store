@@ -35,6 +35,7 @@ module.exports = {
   packagerConfig: {
     name: "Check-Printer-Check-Writer",
     executableName: "CheckPrinterCheckWriter",
+    icon: path.resolve(__dirname, "../resources/app-icon.ico"),
     asar: true,
     extraResource: bridgeResource ? [bridgeResource] : [],
     overwrite: true,
@@ -53,6 +54,7 @@ module.exports = {
       sign: false,
       createPri: true,
       logLevel: "warn",
+      packageAssets: path.resolve(__dirname, "../resources/msix-assets"),
       windowsKitVersion,
       appManifest: msixArch ? path.resolve(__dirname, `../resources/msix/${msixArch}/AppxManifest.xml`) : undefined,
       manifestVariables: {
