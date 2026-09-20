@@ -210,6 +210,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--blue-600); outli
 .callout strong, .callout span { display: block; }
 .callout strong { font-size: .7rem; }
 .callout span, .callout:not(:has(div)) { margin-top: 3px; font-size: .65rem; line-height: 1.45; }
+.callout-actions { margin-top: 14px; }
 .check-list { max-width: 620px; padding: 0; margin: 19px auto; text-align: left; list-style: none; }
 .check-list li { position: relative; padding: 8px 0 8px 24px; color: var(--muted); font-size: .7rem; line-height: 1.45; }
 .check-list li::before { position: absolute; left: 0; color: var(--success); content: "✓"; font-weight: 800; }
@@ -288,6 +289,8 @@ dd { margin: 0; overflow-wrap: anywhere; font-size: .69rem; font-weight: 700; }
 .policy-card > .ti { color: var(--blue-650); font-size: 28px; }
 .policy-card h2 { margin: 14px 0 8px; font-size: .83rem; line-height: 1.4; }
 .policy-card p { margin: 0; color: var(--muted); font-size: .68rem; line-height: 1.55; }
+.policy-card-text { display: flex; flex-direction: column; justify-content: center; }
+.policy-card-text h2 { margin-top: 0; }
 .numbered-guide { padding: 12px 34px 22px 50px; margin: 0; }
 .numbered-guide li { padding: 10px 0 10px 6px; color: var(--muted); font-size: .71rem; line-height: 1.5; }
 
