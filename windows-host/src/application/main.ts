@@ -13,7 +13,11 @@ import { localize } from "../../../src/localization.ts";
 import type { NativePrintOutcome } from "../../../src/host-contract.ts";
 import type { AppLocale } from "../../../src/types.ts";
 import type { PrintSubmission } from "../platform/contracts.ts";
-import type { PartnerCenterIdentity } from "../product/product-identity.ts";
+import {
+  resolvePartnerCenterIdentity,
+  storeAssociationEnabled,
+  type PartnerCenterIdentity,
+} from "../product/product-identity.ts";
 import { PreUiApplicationBridge } from "./ui-bridge.ts";
 import { openPreUiApplication, type PreUiApplication } from "./pre-ui-host.ts";
 import { FileUiStateStore } from "./ui-session-store.ts";
@@ -130,22 +134,12 @@ function nativeWindowHandle(window: BrowserWindow): number {
 }
 
 function partnerCenterIdentity(): PartnerCenterIdentity {
-  return {
-    packageIdentityName: process.env.WORKSBIEN_PACKAGE_IDENTITY_NAME ?? APP_USER_MODEL_ID,
-    packageFamilyName: process.env.WORKSBIEN_PACKAGE_FAMILY_NAME ?? "not-store-associated",
-    publisherSubject: process.env.WORKSBIEN_PUBLISHER_SUBJECT ?? "not-store-associated",
-    appStoreId: process.env.WORKSBIEN_APP_STORE_ID ?? "000000000000",
-    lifetimeAddOnStoreId: process.env.WORKSBIEN_LIFETIME_STORE_ID ?? "000000000001",
-  };
+  return resolvePartnerCenterIdentity(process.windowsStore === true, process.env);
 }
 
 function storeAssociated(identity: PartnerCenterIdentity): boolean {
   return app.isPackaged
-    && process.env.WORKSBIEN_STORE_ASSOCIATED === "1"
-    && identity.packageFamilyName !== "not-store-associated"
-    && identity.publisherSubject !== "not-store-associated"
-    && identity.appStoreId !== "000000000000"
-    && identity.lifetimeAddOnStoreId !== "000000000001";
+    && storeAssociationEnabled(process.windowsStore === true, identity, process.env);
 }
 
 async function confirmPhysicalOutcome(locale: AppLocale): Promise<NativePrintOutcome> {

@@ -4,7 +4,16 @@ import test from "node:test";
 import { loadHostCatalogs } from "../../src/product/catalog-loader.ts";
 import { CUSTOMER_STATE_MODEL } from "../../src/product/customer-states.ts";
 import { FIRST_LIVE_CHEQUE_FLOW, ONBOARDING_FLOW, PRIMARY_NAVIGATION, ROUTES } from "../../src/product/navigation.ts";
-import { DEFERRED_HOST_LOCALES, FREE_LIVE_CHEQUE_LIMIT, LAUNCH_HOST_LOCALES, STORE_PRODUCT, validatePartnerCenterIdentity } from "../../src/product/product-identity.ts";
+import {
+  DEFERRED_HOST_LOCALES,
+  FREE_LIVE_CHEQUE_LIMIT,
+  LAUNCH_HOST_LOCALES,
+  PRODUCTION_PARTNER_CENTER_CONFIG,
+  STORE_PRODUCT,
+  resolvePartnerCenterIdentity,
+  storeAssociationEnabled,
+  validatePartnerCenterIdentity,
+} from "../../src/product/product-identity.ts";
 
 test("Store identity, add-on model and locked catalog targets are explicit", () => {
   assert.equal(STORE_PRODUCT.storeTitle, "Check Printer & Check Writer");
@@ -13,9 +22,49 @@ test("Store identity, add-on model and locked catalog targets are explicit", () 
   assert.equal(STORE_PRODUCT.lifetimeAddOn.inAppOfferToken, "lifetime_unlock");
   assert.equal(STORE_PRODUCT.lifetimeAddOn.productKind, "DURABLE");
   assert.equal(STORE_PRODUCT.lifetimeAddOn.duration, "NEVER_EXPIRES");
-  assert.equal(STORE_PRODUCT.lifetimeAddOn.storeId, undefined);
+  assert.equal(STORE_PRODUCT.lifetimeAddOn.storeId, "9NMS13S9NWGH");
   assert.deepEqual(STORE_PRODUCT.targetCatalogPrices, { US: { currency: "USD", minorUnits: 1999 }, CA: { currency: "CAD", minorUnits: 2599 } });
   assert.equal(FREE_LIVE_CHEQUE_LIMIT, 3);
+});
+
+test("production packages use the exact Partner Center identity and cannot be redirected by environment variables", () => {
+  assert.deepEqual(PRODUCTION_PARTNER_CENTER_CONFIG, {
+    packageIdentityName: "WorksBienStudiosInc.CheckPrinterCheckWriter",
+    packageFamilyName: "WorksBienStudiosInc.CheckPrinterCheckWriter_30gx9csnzx4ry",
+    publisherSubject: "CN=91C84CDB-D12C-4F89-8F2C-8EF1A15DF7F3",
+    publisherDisplayName: "WorksBien Studios Inc.",
+    appStoreId: "9PKWNPRZQCVM",
+    lifetimeAddOnStoreId: "9NMS13S9NWGH",
+  });
+  assert.deepEqual(validatePartnerCenterIdentity(PRODUCTION_PARTNER_CENTER_CONFIG), []);
+
+  const redirected = resolvePartnerCenterIdentity(true, {
+    WORKSBIEN_APP_STORE_ID: "9AAAAAAAAAAA",
+    WORKSBIEN_LIFETIME_STORE_ID: "9BBBBBBBBBBB",
+  });
+  assert.deepEqual(redirected, PRODUCTION_PARTNER_CENTER_CONFIG);
+  assert.equal(storeAssociationEnabled(true, redirected, {}), true);
+});
+
+test("development builds remain Store-unassociated unless an explicit complete test identity is supplied", () => {
+  const defaults = resolvePartnerCenterIdentity(false, {});
+  assert.equal(storeAssociationEnabled(false, defaults, {}), false);
+
+  const testIdentity = {
+    packageIdentityName: "WorksBien.Tests.CheckPrinter",
+    packageFamilyName: "WorksBien.Tests.CheckPrinter_1234567890abc",
+    publisherSubject: "CN=WorksBien Tests",
+    appStoreId: "9AAAAAAAAAAA",
+    lifetimeAddOnStoreId: "9BBBBBBBBBBB",
+  };
+  assert.deepEqual(resolvePartnerCenterIdentity(false, {
+    WORKSBIEN_PACKAGE_IDENTITY_NAME: testIdentity.packageIdentityName,
+    WORKSBIEN_PACKAGE_FAMILY_NAME: testIdentity.packageFamilyName,
+    WORKSBIEN_PUBLISHER_SUBJECT: testIdentity.publisherSubject,
+    WORKSBIEN_APP_STORE_ID: testIdentity.appStoreId,
+    WORKSBIEN_LIFETIME_STORE_ID: testIdentity.lifetimeAddOnStoreId,
+  }), testIdentity);
+  assert.equal(storeAssociationEnabled(false, testIdentity, { WORKSBIEN_STORE_ASSOCIATED: "1" }), true);
 });
 
 test("Partner Center placeholder is rejected and the generated Store IDs are mandatory", () => {

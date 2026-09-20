@@ -39,14 +39,13 @@ Microsoft documents non-expiring Durable add-ons, `StoreContext`, add-on license
 
 ## External actions that code cannot complete
 
-1. Reserve **Check Printer & Check Writer** in Partner Center.
-2. Copy the authoritative package identity name, family name, publisher subject and app Store ID into release configuration.
-3. Create add-on product ID `lifetime_unlock` as **Durable / never expires**.
-4. Copy its generated 12-character Store ID into the signed release configuration and the bridge environment.
-5. Configure the US catalog target at USD 19.99 and Canada at CAD 25.99; review the Store-generated prices elsewhere.
-6. Publish an unavailable/private package flight, install it from Store, and run purchase, cancel, offline, account-switch, reinstall and restore tests. `Windows.Services.Store` has no local simulator for this path.
-7. Host the final privacy-policy URLs and enter them in Partner Center for every declared localization.
-8. Complete age rating, purchase-range disclosure and reviewer instructions in Partner Center.
+1. Publish an unavailable/private package flight, install it from Store, and run purchase, cancel, offline, account-switch, reinstall and restore tests. `Windows.Services.Store` has no local simulator for this path.
+2. Host the final privacy-policy URLs and enter them in Partner Center for every declared localization.
+3. Complete age rating, purchase-range disclosure and reviewer instructions in Partner Center.
+
+The product reservation, production package identity, non-expiring Durable
+`lifetime_unlock` add-on, generated Store IDs and US/Canada catalog targets are
+complete and encoded in the release configuration.
 
 ## Verification commands
 

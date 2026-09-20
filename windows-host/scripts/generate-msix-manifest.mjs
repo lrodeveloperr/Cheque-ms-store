@@ -7,14 +7,23 @@ const arch = process.env.MSIX_ARCH;
 if (arch !== "x64" && arch !== "arm64") throw new Error("MSIX_ARCH must be x64 or arm64.");
 
 const release = process.env.MS_STORE_RELEASE === "1";
-const identity = process.env.MS_STORE_IDENTITY_NAME || "WorksBienStudiosInc.CheckPrinter.DEVELOPMENT";
-const publisher = process.env.MS_STORE_PUBLISHER || "CN=WorksBien Development";
-const publisherDisplayName = process.env.MS_STORE_PUBLISHER_DISPLAY_NAME || "WorksBien Studios Inc. (Development)";
-if (release && (!process.env.MS_STORE_IDENTITY_NAME || !process.env.MS_STORE_PUBLISHER || !process.env.MS_STORE_PUBLISHER_DISPLAY_NAME)) {
-  throw new Error("Release manifest generation requires exact Partner Center identity values.");
-}
+const productionConfig = JSON.parse(await readFile(resolve(root, "src", "product", "partner-center.production.json"), "utf8"));
+const releaseValue = (environmentName, configName) => {
+  const configured = String(productionConfig[configName] || "");
+  const override = process.env[environmentName];
+  if (release && override && override !== configured) {
+    throw new Error(`${environmentName} does not match the canonical Partner Center configuration.`);
+  }
+  return release ? configured : override;
+};
+const identity = releaseValue("MS_STORE_IDENTITY_NAME", "packageIdentityName") || "WorksBienStudiosInc.CheckPrinter.DEVELOPMENT";
+const publisher = releaseValue("MS_STORE_PUBLISHER", "publisherSubject") || "CN=WorksBien Development";
+const publisherDisplayName = releaseValue("MS_STORE_PUBLISHER_DISPLAY_NAME", "publisherDisplayName") || "WorksBien Studios Inc. (Development)";
 if (release && /DEVELOPMENT|WorksBien Development/u.test(`${identity}|${publisher}|${publisherDisplayName}`)) {
   throw new Error("Release manifest generation refuses development identity values.");
+}
+if (release && (!productionConfig.packageFamilyName || !/^[A-Z0-9]{12}$/iu.test(productionConfig.appStoreId) || !/^[A-Z0-9]{12}$/iu.test(productionConfig.lifetimeAddOnStoreId))) {
+  throw new Error("The canonical Partner Center configuration is incomplete.");
 }
 
 const packageJson = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));

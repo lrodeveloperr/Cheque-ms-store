@@ -20,10 +20,18 @@ The customer-facing Windows interface uses the **Operations Desk** direction. It
 
 The renderer runs with context isolation, sandboxing and a narrow preload bridge. The main process owns encrypted persistence, Store commerce, native file dialogs, exact-PDF saving, native printing, print-outcome confirmation, backup and restore. UI code cannot access Node.js or the filesystem directly.
 
+## Store release configuration
+
+- The final Microsoft Store package identity, publisher, app Store ID, package
+  family name and Lifetime Unlock Store ID are configured from the authoritative
+  Partner Center product.
+- Store-installed packages use the embedded production identity; development
+  builds remain Store-unassociated.
+- The release workflow verifies both x64 and ARM64 manifests against the
+  production identity before uploading artifacts.
+
 ## Deliberately deferred to Store submission
 
-- Final Microsoft Store package identity values.
-- Final Partner Center add-on identifier for Lifetime Unlock.
 - Store-generated localized price strings and license verification against the production listing.
 
 These are Partner Center inputs, not unfinished UI or cheque-engine work.

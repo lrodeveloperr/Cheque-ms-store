@@ -1,3 +1,26 @@
+import productionPartnerCenterConfig from "./partner-center.production.json" with { type: "json" };
+
+export interface PartnerCenterIdentity {
+  packageIdentityName: string;
+  packageFamilyName: string;
+  publisherSubject: string;
+  appStoreId: string;
+  lifetimeAddOnStoreId: string;
+}
+
+export interface PartnerCenterReleaseConfig extends PartnerCenterIdentity {
+  publisherDisplayName: string;
+}
+
+export const PRODUCTION_PARTNER_CENTER_CONFIG = Object.freeze({
+  packageIdentityName: productionPartnerCenterConfig.packageIdentityName,
+  packageFamilyName: productionPartnerCenterConfig.packageFamilyName,
+  publisherSubject: productionPartnerCenterConfig.publisherSubject,
+  publisherDisplayName: productionPartnerCenterConfig.publisherDisplayName,
+  appStoreId: productionPartnerCenterConfig.appStoreId,
+  lifetimeAddOnStoreId: productionPartnerCenterConfig.lifetimeAddOnStoreId,
+}) satisfies Readonly<PartnerCenterReleaseConfig>;
+
 export const STORE_PRODUCT = Object.freeze({
   storeTitle: "Check Printer & Check Writer",
   packageDisplayName: "Check Printer & Check Writer",
@@ -5,7 +28,7 @@ export const STORE_PRODUCT = Object.freeze({
   packageIdentityNamePlaceholder: "WorksBienStudios.CheckPrinterCheckWriter",
   lifetimeAddOn: Object.freeze({
     inAppOfferToken: "lifetime_unlock",
-    storeId: undefined as string | undefined,
+    storeId: PRODUCTION_PARTNER_CENTER_CONFIG.lifetimeAddOnStoreId,
     productKind: "DURABLE" as const,
     duration: "NEVER_EXPIRES" as const,
   }),
@@ -29,15 +52,17 @@ export const LAUNCH_HOST_LOCALES = Object.freeze([
 
 export const DEFERRED_HOST_LOCALES = Object.freeze(["es-US"] as const);
 
-export interface PartnerCenterIdentity {
-  packageIdentityName: string;
-  packageFamilyName: string;
-  publisherSubject: string;
-  appStoreId: string;
-  lifetimeAddOnStoreId: string;
-}
-
 const STORE_ID_PATTERN = /^[A-Z0-9]{12}$/i;
+
+export interface StoreIdentityEnvironment {
+  [name: string]: string | undefined;
+  WORKSBIEN_PACKAGE_IDENTITY_NAME?: string;
+  WORKSBIEN_PACKAGE_FAMILY_NAME?: string;
+  WORKSBIEN_PUBLISHER_SUBJECT?: string;
+  WORKSBIEN_APP_STORE_ID?: string;
+  WORKSBIEN_LIFETIME_STORE_ID?: string;
+  WORKSBIEN_STORE_ASSOCIATED?: string;
+}
 
 function present(value: string): boolean {
   return value.trim().length > 0;
@@ -67,4 +92,36 @@ export function validatePartnerCenterIdentity(
     failures.push("lifetimeAddOnStoreId.mustDifferFromApp");
   }
   return failures;
+}
+
+/**
+ * A Store-installed package always uses the immutable Partner Center identity
+ * compiled into the release. Environment overrides remain available only for
+ * unpackaged development and adapter testing.
+ */
+export function resolvePartnerCenterIdentity(
+  windowsStore: boolean,
+  environment: StoreIdentityEnvironment,
+): PartnerCenterIdentity {
+  if (windowsStore) return PRODUCTION_PARTNER_CENTER_CONFIG;
+  return {
+    packageIdentityName: environment.WORKSBIEN_PACKAGE_IDENTITY_NAME
+      ?? STORE_PRODUCT.packageIdentityNamePlaceholder,
+    packageFamilyName: environment.WORKSBIEN_PACKAGE_FAMILY_NAME
+      ?? "not-store-associated",
+    publisherSubject: environment.WORKSBIEN_PUBLISHER_SUBJECT
+      ?? "not-store-associated",
+    appStoreId: environment.WORKSBIEN_APP_STORE_ID ?? "000000000000",
+    lifetimeAddOnStoreId: environment.WORKSBIEN_LIFETIME_STORE_ID
+      ?? "000000000001",
+  };
+}
+
+export function storeAssociationEnabled(
+  windowsStore: boolean,
+  identity: PartnerCenterIdentity,
+  environment: StoreIdentityEnvironment,
+): boolean {
+  const requested = windowsStore || environment.WORKSBIEN_STORE_ASSOCIATED === "1";
+  return requested && validatePartnerCenterIdentity(identity).length === 0;
 }

@@ -81,18 +81,14 @@ passed on Windows Server 2025 for commit `f745100d2acb6035daf1fe2508df62db8fe8e5
 
 These are validation/deployment gates, not unfinished UI work:
 
-1. Reserve/confirm the product in Partner Center and copy its exact identity,
-   publisher and application Store ID into the release environment.
-2. Create the non-expiring Lifetime add-on, set US/Canada market prices, and
-   copy its Store ID into the bridge environment.
-3. Associate a signed package flight with the Store product and test price,
+1. Associate a signed package flight with the Store product and test price,
    purchase, restore, refund/revocation and offline-grace behaviour with Store
    test accounts. `Windows.Services.Store` has no equivalent local simulator.
-4. On Windows, validate Microsoft Print to PDF and at least one real printer;
+2. On Windows, validate Microsoft Print to PDF and at least one real printer;
    when the driver does not declare Letter capability, confirm that the manual
    Letter acknowledgement gate appears.
-5. Before public submission, add final branded MSIX assets, obtain professional
-   legal review, and publish the final privacy/terms URLs.
+3. Before public submission, obtain professional legal review and publish the
+   final privacy/terms URLs. Final branded MSIX assets are already included.
 
 ## Locked boundaries
 

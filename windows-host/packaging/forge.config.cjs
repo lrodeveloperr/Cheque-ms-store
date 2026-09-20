@@ -1,8 +1,18 @@
 const fs = require("node:fs");
 const path = require("node:path");
-const identityName = process.env.MS_STORE_IDENTITY_NAME || "WorksBienStudiosInc.CheckPrinter.DEVELOPMENT";
-const publisher = process.env.MS_STORE_PUBLISHER || "CN=WorksBien Development";
-const publisherDisplayName = process.env.MS_STORE_PUBLISHER_DISPLAY_NAME || "WorksBien Studios Inc. (Development)";
+const release = process.env.MS_STORE_RELEASE === "1";
+const productionConfig = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../src/product/partner-center.production.json"), "utf8"));
+function releaseValue(environmentName, configName) {
+  const configured = String(productionConfig[configName] || "");
+  const override = process.env[environmentName];
+  if (release && override && override !== configured) {
+    throw new Error(`${environmentName} does not match the canonical Partner Center configuration.`);
+  }
+  return release ? configured : override;
+}
+const identityName = releaseValue("MS_STORE_IDENTITY_NAME", "packageIdentityName") || "WorksBienStudiosInc.CheckPrinter.DEVELOPMENT";
+const publisher = releaseValue("MS_STORE_PUBLISHER", "publisherSubject") || "CN=WorksBien Development";
+const publisherDisplayName = releaseValue("MS_STORE_PUBLISHER_DISPLAY_NAME", "publisherDisplayName") || "WorksBien Studios Inc. (Development)";
 const msixArch = process.env.MSIX_ARCH;
 const bridgeResource = msixArch ? `resources/store-bridge/${msixArch}` : undefined;
 
@@ -22,11 +32,12 @@ function discoverWindowsKitVersion(arch) {
 
 const windowsKitVersion = discoverWindowsKitVersion(msixArch);
 
-if (process.env.MS_STORE_RELEASE === "1") {
-  const missing = ["MS_STORE_IDENTITY_NAME", "MS_STORE_PUBLISHER", "MS_STORE_PUBLISHER_DISPLAY_NAME"].filter((name) => !process.env[name]);
-  if (missing.length) throw new Error(`Store release packaging requires exact Partner Center values: ${missing.join(", ")}`);
+if (release) {
   if (/DEVELOPMENT|WorksBien Development/.test(`${identityName}|${publisher}|${publisherDisplayName}`)) {
     throw new Error("Store release packaging refuses development identity values.");
+  }
+  if (!productionConfig.packageFamilyName || !/^[A-Z0-9]{12}$/i.test(productionConfig.appStoreId) || !/^[A-Z0-9]{12}$/i.test(productionConfig.lifetimeAddOnStoreId)) {
+    throw new Error("The canonical Partner Center configuration is incomplete.");
   }
 }
 
