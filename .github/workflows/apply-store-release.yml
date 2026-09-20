@@ -15,8 +15,8 @@ jobs:
           fetch-depth: 0
       - name: Apply verified release patch
         run: |
-          git apply --index --whitespace=error-all 0001-Configure-production-Store-identity-skip-ci.patch
-          rm 0001-Configure-production-Store-identity-skip-ci.patch
+          git apply --index --whitespace=error-all .github/0001-Configure-production-Store-identity-skip-ci.patch
+          rm .github/0001-Configure-production-Store-identity-skip-ci.patch
           rm .github/workflows/apply-store-release.yml
           git add -A
           git diff --cached --check
